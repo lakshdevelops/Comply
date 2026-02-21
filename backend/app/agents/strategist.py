@@ -52,3 +52,71 @@ def run_strategist(violations: list[dict]) -> list[dict]:
         plans = []
 
     return plans
+
+
+def run_strategist_streaming(violations: list[dict]):
+    """
+    Generator that yields SSE-compatible event dicts as it builds remediation plans.
+    """
+    from app.agents.gemini_client import invoke_streaming
+
+    yield {
+        "event": "reasoning_chunk",
+        "data": {"agent": "Strategist", "chunk": f"Building remediation plans for {len(violations)} violations...\n"}
+    }
+
+    # Enrich violations with regulatory context
+    enriched = []
+    for v in violations:
+        entry = dict(v)
+        regulation_ref = v.get("regulation_ref", "")
+        if regulation_ref:
+            context = get_article_context(regulation_ref)
+            if context:
+                entry["regulatory_context"] = context
+            yield {
+                "event": "reasoning_chunk",
+                "data": {"agent": "Strategist", "chunk": f"Enriching violation {v.get('violation_id', '?')} with {regulation_ref} context...\n"}
+            }
+        enriched.append(entry)
+
+    user_content = json.dumps(enriched, indent=2)
+
+    yield {
+        "event": "reasoning_chunk",
+        "data": {"agent": "Strategist", "chunk": "Generating remediation strategies...\n"}
+    }
+
+    # Stream Gemini reasoning
+    full_response = ""
+    for chunk in invoke_streaming(system_prompt=STRATEGIST_SYSTEM_PROMPT, user_content=user_content):
+        full_response += chunk
+        yield {
+            "event": "reasoning_chunk",
+            "data": {"agent": "Strategist", "chunk": chunk}
+        }
+
+    # Parse plans from complete response
+    text = full_response.strip()
+    if text.startswith("```"):
+        lines = text.split("\n")
+        text = "\n".join(lines[1:-1]).strip()
+
+    try:
+        plans = json.loads(text)
+    except json.JSONDecodeError:
+        plans = []
+
+    if not isinstance(plans, list):
+        plans = []
+
+    for p in plans:
+        yield {
+            "event": "plan_ready",
+            "data": {"agent": "Strategist", "plan": p}
+        }
+
+    yield {
+        "event": "agent_complete",
+        "data": {"agent": "Strategist", "summary": f"{len(plans)} remediation plans produced", "plans": plans}
+    }

@@ -4,3 +4,5 @@ serviceAccount.json
 *.pyc
 *.pyo
 __pycache__/
+.env
+*.db

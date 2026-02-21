@@ -56,6 +56,9 @@ export const getScan = (token: string, scanId: string) =>
 export const deleteScan = (token: string, scanId: string) =>
   apiFetch(`/scans/${scanId}`, { method: "DELETE" }, token);
 
+export const getScanStreamUrl = (token: string, scanId: string) =>
+  `${API_BASE}/scan/${scanId}/stream?token=${encodeURIComponent(token)}`;
+
 // Fixes
 export const approveFixes = (
   token: string,

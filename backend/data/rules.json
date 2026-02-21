@@ -1,0 +1,309 @@
+[
+  {
+    "rule_id": "DORA-9.3b-001",
+    "regulation": "DORA",
+    "article": "Article 9(3)(b)",
+    "title": "Encryption of data at rest",
+    "description": "All databases and storage containing financial data must have encryption at rest enabled to minimise the risk of corruption or loss of data and unauthorised access.",
+    "severity": "critical",
+    "regulation_ref": "DORA-Art9-3b",
+    "resource_checks": [
+      {
+        "provider": "aws",
+        "resource_type": "aws_db_instance",
+        "field": "storage_encrypted",
+        "violation_condition": "equals false OR field missing",
+        "fix_template": "Set storage_encrypted = true and configure KMS key with automatic rotation"
+      },
+      {
+        "provider": "aws",
+        "resource_type": "aws_s3_bucket",
+        "field": "server_side_encryption_configuration",
+        "violation_condition": "field missing OR not configured",
+        "fix_template": "Add server_side_encryption_configuration block with AES256 or aws:kms algorithm"
+      }
+    ]
+  },
+  {
+    "rule_id": "DORA-9.3c-001",
+    "regulation": "DORA",
+    "article": "Article 9(3)(c)",
+    "title": "Encryption in transit",
+    "description": "All network communications carrying financial data must use encrypted protocols (TLS/HTTPS) to prevent the impairment of authenticity and integrity of data and breaches of confidentiality.",
+    "severity": "critical",
+    "regulation_ref": "DORA-Art9-3c",
+    "resource_checks": [
+      {
+        "provider": "aws",
+        "resource_type": "aws_lb_listener",
+        "field": "protocol",
+        "violation_condition": "equals HTTP (must be HTTPS)",
+        "fix_template": "Change protocol to HTTPS and attach a valid SSL certificate ARN"
+      },
+      {
+        "provider": "kubernetes",
+        "resource_type": "networking.k8s.io/v1/Ingress",
+        "field": "spec.tls",
+        "violation_condition": "field missing OR empty",
+        "fix_template": "Add spec.tls block with valid TLS secret reference"
+      }
+    ]
+  },
+  {
+    "rule_id": "DORA-9.4c-001",
+    "regulation": "DORA",
+    "article": "Article 9(4)(c)",
+    "title": "Key management and access control",
+    "description": "Cryptographic keys used for data encryption must be properly managed with automatic rotation enabled, and access must be limited to legitimate and approved functions only.",
+    "severity": "high",
+    "regulation_ref": "DORA-Art9-4c",
+    "resource_checks": [
+      {
+        "provider": "aws",
+        "resource_type": "aws_kms_key",
+        "field": "enable_key_rotation",
+        "violation_condition": "equals false OR field missing",
+        "fix_template": "Set enable_key_rotation = true to enable automatic annual key rotation"
+      },
+      {
+        "provider": "aws",
+        "resource_type": "aws_db_instance",
+        "field": "kms_key_id",
+        "violation_condition": "field missing OR empty",
+        "fix_template": "Set kms_key_id to reference a KMS key ARN with rotation enabled"
+      }
+    ]
+  },
+  {
+    "rule_id": "DORA-10-001",
+    "regulation": "DORA",
+    "article": "Article 10",
+    "title": "Logging and monitoring",
+    "description": "Financial entities must have mechanisms to promptly detect anomalous activities, including ICT network performance issues and ICT-related incidents. Sufficient monitoring and logging must be in place.",
+    "severity": "high",
+    "regulation_ref": "DORA-Art10-1",
+    "resource_checks": [
+      {
+        "provider": "aws",
+        "resource_type": "aws_instance",
+        "field": "monitoring",
+        "violation_condition": "equals false OR field missing",
+        "fix_template": "Set monitoring = true to enable detailed CloudWatch monitoring"
+      },
+      {
+        "provider": "aws",
+        "resource_type": "aws_cloudtrail",
+        "field": "is_multi_region_trail",
+        "violation_condition": "resource missing (at least one CloudTrail must exist)",
+        "fix_template": "Create an aws_cloudtrail resource with is_multi_region_trail = true and enable log file validation"
+      },
+      {
+        "provider": "kubernetes",
+        "resource_type": "apps/v1/Deployment",
+        "field": "spec.template.spec.containers[*].resources.limits",
+        "violation_condition": "field missing OR empty (no resource limits defined)",
+        "fix_template": "Add resources.limits with cpu and memory limits to all containers in the deployment"
+      }
+    ]
+  },
+  {
+    "rule_id": "DORA-11.1-001",
+    "regulation": "DORA",
+    "article": "Article 11(1)",
+    "title": "Backup and recovery",
+    "description": "Financial entities must put in place a comprehensive ICT business continuity policy including backup and recovery procedures to ensure the continuity of critical functions.",
+    "severity": "critical",
+    "regulation_ref": "DORA-Art11-1",
+    "resource_checks": [
+      {
+        "provider": "aws",
+        "resource_type": "aws_db_instance",
+        "field": "backup_retention_period",
+        "violation_condition": "equals 0 OR field missing",
+        "fix_template": "Set backup_retention_period to a value >= 7 (recommended 30 for critical databases)"
+      },
+      {
+        "provider": "aws",
+        "resource_type": "aws_db_instance",
+        "field": "multi_az",
+        "violation_condition": "equals false OR field missing",
+        "fix_template": "Set multi_az = true to enable Multi-AZ deployment for high availability"
+      }
+    ]
+  },
+  {
+    "rule_id": "DORA-12-001",
+    "regulation": "DORA",
+    "article": "Article 12",
+    "title": "Incident detection",
+    "description": "Financial entities must have detection mechanisms that enable multiple layers of control, define alert thresholds, and trigger ICT-related incident response processes.",
+    "severity": "high",
+    "regulation_ref": "DORA-Art10-2",
+    "resource_checks": [
+      {
+        "provider": "aws",
+        "resource_type": "aws_cloudwatch_metric_alarm",
+        "field": "alarm_actions",
+        "violation_condition": "resource missing (at least one alarm must exist for critical resources)",
+        "fix_template": "Create aws_cloudwatch_metric_alarm resources with appropriate thresholds and SNS topic alarm_actions for critical infrastructure"
+      },
+      {
+        "provider": "kubernetes",
+        "resource_type": "apps/v1/Deployment",
+        "field": "spec.template.spec.containers[*].livenessProbe",
+        "violation_condition": "field missing (liveness and/or readiness probes not configured)",
+        "fix_template": "Add livenessProbe and readinessProbe to all containers with appropriate httpGet or tcpSocket checks"
+      }
+    ]
+  },
+  {
+    "rule_id": "GDPR-32.1a-001",
+    "regulation": "GDPR",
+    "article": "Article 32(1)(a)",
+    "title": "Encryption of personal data",
+    "description": "Controllers and processors must implement encryption of personal data as an appropriate technical measure to ensure a level of security appropriate to the risk.",
+    "severity": "critical",
+    "regulation_ref": "GDPR-Art32-1a",
+    "resource_checks": [
+      {
+        "provider": "aws",
+        "resource_type": "aws_db_instance",
+        "field": "storage_encrypted",
+        "violation_condition": "equals false OR field missing",
+        "fix_template": "Set storage_encrypted = true and configure KMS key with automatic rotation"
+      },
+      {
+        "provider": "aws",
+        "resource_type": "aws_s3_bucket",
+        "field": "server_side_encryption_configuration",
+        "violation_condition": "field missing OR not configured",
+        "fix_template": "Add server_side_encryption_configuration block with AES256 or aws:kms algorithm"
+      }
+    ]
+  },
+  {
+    "rule_id": "GDPR-32.1b-001",
+    "regulation": "GDPR",
+    "article": "Article 32(1)(b)",
+    "title": "Access controls",
+    "description": "Controllers and processors must ensure the ongoing confidentiality, integrity, availability and resilience of processing systems and services through proper access controls.",
+    "severity": "high",
+    "regulation_ref": "GDPR-Art32-1b",
+    "resource_checks": [
+      {
+        "provider": "aws",
+        "resource_type": "aws_security_group",
+        "field": "ingress.cidr_blocks",
+        "violation_condition": "contains 0.0.0.0/0 (unrestricted ingress access)",
+        "fix_template": "Restrict ingress cidr_blocks to specific trusted IP ranges instead of 0.0.0.0/0"
+      },
+      {
+        "provider": "kubernetes",
+        "resource_type": "apps/v1/Deployment",
+        "field": "spec.template.spec.containers[*].securityContext.runAsNonRoot",
+        "violation_condition": "equals false OR field missing",
+        "fix_template": "Set securityContext.runAsNonRoot = true and specify a non-root runAsUser (e.g. 1000)"
+      }
+    ]
+  },
+  {
+    "rule_id": "GDPR-32.1c-001",
+    "regulation": "GDPR",
+    "article": "Article 32(1)(c)",
+    "title": "Availability and resilience",
+    "description": "Controllers and processors must ensure the ability to restore availability and access to personal data in a timely manner in the event of a physical or technical incident.",
+    "severity": "medium",
+    "regulation_ref": "GDPR-Art32-1c",
+    "resource_checks": [
+      {
+        "provider": "aws",
+        "resource_type": "aws_db_instance",
+        "field": "multi_az",
+        "violation_condition": "equals false OR field missing",
+        "fix_template": "Set multi_az = true to enable Multi-AZ deployment for high availability and disaster recovery"
+      },
+      {
+        "provider": "kubernetes",
+        "resource_type": "apps/v1/Deployment",
+        "field": "spec.replicas",
+        "violation_condition": "equals 1 OR field missing (single replica has no redundancy)",
+        "fix_template": "Set spec.replicas to a value >= 2 for production workloads to ensure availability"
+      }
+    ]
+  },
+  {
+    "rule_id": "CIS-2.1.1-001",
+    "regulation": "CIS AWS Benchmark",
+    "article": "Section 2.1.1",
+    "title": "S3 bucket encryption",
+    "description": "Ensure that S3 buckets have server-side encryption enabled to protect data at rest.",
+    "severity": "high",
+    "regulation_ref": "CIS-2.1-1",
+    "resource_checks": [
+      {
+        "provider": "aws",
+        "resource_type": "aws_s3_bucket",
+        "field": "server_side_encryption_configuration",
+        "violation_condition": "field missing OR not configured",
+        "fix_template": "Add server_side_encryption_configuration with rule { apply_server_side_encryption_by_default { sse_algorithm = 'aws:kms' } }"
+      }
+    ]
+  },
+  {
+    "rule_id": "CIS-2.1.2-001",
+    "regulation": "CIS AWS Benchmark",
+    "article": "Section 2.1.2",
+    "title": "S3 public access block",
+    "description": "Ensure that S3 bucket public access block is configured to block all public access, preventing accidental data exposure.",
+    "severity": "high",
+    "regulation_ref": "CIS-2.1-2",
+    "resource_checks": [
+      {
+        "provider": "aws",
+        "resource_type": "aws_s3_bucket_public_access_block",
+        "field": "block_public_acls",
+        "violation_condition": "equals false OR field missing",
+        "fix_template": "Set block_public_acls = true"
+      },
+      {
+        "provider": "aws",
+        "resource_type": "aws_s3_bucket_public_access_block",
+        "field": "block_public_policy",
+        "violation_condition": "equals false OR field missing",
+        "fix_template": "Set block_public_policy = true"
+      },
+      {
+        "provider": "aws",
+        "resource_type": "aws_s3_bucket_public_access_block",
+        "field": "ignore_public_acls",
+        "violation_condition": "equals false OR field missing",
+        "fix_template": "Set ignore_public_acls = true"
+      },
+      {
+        "provider": "aws",
+        "resource_type": "aws_s3_bucket_public_access_block",
+        "field": "restrict_public_buckets",
+        "violation_condition": "equals false OR field missing",
+        "fix_template": "Set restrict_public_buckets = true"
+      }
+    ]
+  },
+  {
+    "rule_id": "CIS-4.1-001",
+    "regulation": "CIS AWS Benchmark",
+    "article": "Section 4.1",
+    "title": "Security group open access",
+    "description": "Ensure no security group allows unrestricted ingress access (0.0.0.0/0) to all ports. Security groups should follow the principle of least privilege.",
+    "severity": "critical",
+    "regulation_ref": "CIS-4.1-1",
+    "resource_checks": [
+      {
+        "provider": "aws",
+        "resource_type": "aws_security_group",
+        "field": "ingress",
+        "violation_condition": "any ingress rule allows cidr_blocks 0.0.0.0/0 with from_port=0 and to_port=0 (all ports open)",
+        "fix_template": "Remove or restrict ingress rules that allow 0.0.0.0/0 on all ports. Specify only the required ports and restrict source CIDR blocks to trusted ranges."
+      }
+    ]
+  }
+]

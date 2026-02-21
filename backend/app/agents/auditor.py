@@ -69,3 +69,71 @@ def run_auditor(repo_files: dict[str, str], is_qa_rescan: bool = False) -> list[
         violations = []
 
     return violations
+
+
+def run_auditor_streaming(repo_files: dict[str, str]):
+    """
+    Generator that yields SSE-compatible event dicts as it scans files.
+    """
+    from app.agents.gemini_client import invoke_streaming
+
+    rules = get_rules()
+    ruleset_json = json.dumps(rules, indent=2)
+    system_prompt = AUDITOR_SYSTEM_PROMPT.format(ruleset=ruleset_json)
+
+    filenames = list(repo_files.keys())
+    yield {
+        "event": "reasoning_chunk",
+        "data": {"agent": "Auditor", "chunk": f"Scanning {len(filenames)} infrastructure files...\n"}
+    }
+
+    # Build user content
+    file_sections = []
+    for filename, content in repo_files.items():
+        file_sections.append(f"--- FILE: {filename} ---\n{content}\n")
+        yield {
+            "event": "reasoning_chunk",
+            "data": {"agent": "Auditor", "chunk": f"Reading {filename}...\n"}
+        }
+    user_content = "\n".join(file_sections)
+
+    yield {
+        "event": "reasoning_chunk",
+        "data": {"agent": "Auditor", "chunk": "Analyzing files against compliance ruleset...\n"}
+    }
+
+    # Stream Gemini reasoning
+    full_response = ""
+    for chunk in invoke_streaming(system_prompt=system_prompt, user_content=user_content):
+        full_response += chunk
+        yield {
+            "event": "reasoning_chunk",
+            "data": {"agent": "Auditor", "chunk": chunk}
+        }
+
+    # Parse violations from complete response
+    text = full_response.strip()
+    if text.startswith("```"):
+        lines = text.split("\n")
+        text = "\n".join(lines[1:-1]).strip()
+
+    try:
+        violations = json.loads(text)
+    except json.JSONDecodeError:
+        violations = []
+
+    if isinstance(violations, list):
+        for v in violations:
+            if not v.get("violation_id"):
+                v["violation_id"] = f"V-{uuid.uuid4().hex[:8]}"
+            yield {
+                "event": "violation_found",
+                "data": {"agent": "Auditor", "violation": v}
+            }
+    else:
+        violations = []
+
+    yield {
+        "event": "agent_complete",
+        "data": {"agent": "Auditor", "summary": f"{len(violations)} violations detected", "violations": violations}
+    }

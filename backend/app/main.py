@@ -31,4 +31,9 @@ def root():
     return {"status": "ok"}
 
 
+@app.get("/health")
+def health():
+    return {"status": "healthy"}
+
+
 app.include_router(api_router, prefix="/api/v1")

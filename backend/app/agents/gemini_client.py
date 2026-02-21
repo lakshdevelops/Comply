@@ -25,3 +25,18 @@ def invoke(system_prompt: str, user_content: str, expect_json: bool = True):
             text = "\n".join(lines[1:-1]).strip()
         return json.loads(text)
     return text
+
+
+def invoke_streaming(system_prompt: str, user_content: str):
+    """
+    Call Gemini with streaming enabled.
+    Yields text chunks as they arrive from the model.
+    """
+    model = genai.GenerativeModel(
+        model_name=settings.GEMINI_MODEL,
+        system_instruction=system_prompt,
+    )
+    response = model.generate_content(user_content, stream=True)
+    for chunk in response:
+        if chunk.text:
+            yield chunk.text

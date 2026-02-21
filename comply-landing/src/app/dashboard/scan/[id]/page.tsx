@@ -1,0 +1,280 @@
+"use client";
+
+import { useEffect, useState, useCallback } from "react";
+import { useParams } from "next/navigation";
+import { motion } from "motion/react";
+import { ArrowLeft, CheckCircle2, AlertTriangle, XCircle } from "lucide-react";
+import Link from "next/link";
+import { useAuth } from "@/contexts/AuthContext";
+import { getScan, approveFixes, createPRs } from "@/lib/api";
+import ViolationCard from "../../components/ViolationCard";
+import ScanProgress from "../../components/ScanProgress";
+import PrStatus from "../../components/PrStatus";
+
+interface Violation {
+  id: string;
+  severity: "critical" | "high" | "medium";
+  description: string;
+  file: string;
+  line: number;
+  resource: string;
+  explanation: string;
+  regulation_citation: string;
+  what_needs_to_change: string;
+  estimated_effort: string;
+  priority: string;
+  sample_fix: string;
+  approved: boolean;
+}
+
+interface ScanData {
+  id: string;
+  repo_owner: string;
+  repo_name: string;
+  status: "scanning" | "completed" | "failed";
+  created_at: string;
+  violations: Violation[];
+  reasoning_log: { agent: string; action: string; output: string; status: string }[];
+  pr_urls?: string[];
+}
+
+export default function ScanResultPage() {
+  const params = useParams();
+  const scanId = params.id as string;
+  const { getIdToken } = useAuth();
+
+  const [scan, setScan] = useState<ScanData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [approvedIds, setApprovedIds] = useState<Set<string>>(new Set());
+  const [prLoading, setPrLoading] = useState(false);
+  const [prUrls, setPrUrls] = useState<string[]>([]);
+  const [prError, setPrError] = useState<string | null>(null);
+
+  const fetchScan = useCallback(async () => {
+    try {
+      const token = await getIdToken();
+      if (!token) return;
+      const data = await getScan(token, scanId);
+      setScan(data);
+      // Initialize approved IDs from server state
+      const approved = new Set<string>(
+        (data.violations || [])
+          .filter((v: Violation) => v.approved)
+          .map((v: Violation) => v.id)
+      );
+      setApprovedIds(approved);
+      if (data.pr_urls) setPrUrls(data.pr_urls);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load scan");
+    } finally {
+      setLoading(false);
+    }
+  }, [getIdToken, scanId]);
+
+  useEffect(() => {
+    fetchScan();
+  }, [fetchScan]);
+
+  // Poll while scanning
+  useEffect(() => {
+    if (scan?.status !== "scanning") return;
+    const interval = setInterval(fetchScan, 5000);
+    return () => clearInterval(interval);
+  }, [scan?.status, fetchScan]);
+
+  const handleApprove = async (violationId: string) => {
+    const token = await getIdToken();
+    if (!token) return;
+
+    const newApproved = new Set(approvedIds);
+    if (newApproved.has(violationId)) {
+      newApproved.delete(violationId);
+    } else {
+      newApproved.add(violationId);
+    }
+    setApprovedIds(newApproved);
+
+    try {
+      await approveFixes(token, scanId, Array.from(newApproved));
+    } catch {
+      // Revert on error
+      setApprovedIds(approvedIds);
+    }
+  };
+
+  const handleApproveAll = async () => {
+    if (!scan) return;
+    const token = await getIdToken();
+    if (!token) return;
+
+    const allIds = new Set(scan.violations.map((v) => v.id));
+    setApprovedIds(allIds);
+
+    try {
+      await approveFixes(token, scanId, Array.from(allIds));
+    } catch {
+      setApprovedIds(approvedIds);
+    }
+  };
+
+  const handleCreatePRs = async () => {
+    const token = await getIdToken();
+    if (!token) return;
+
+    setPrLoading(true);
+    setPrError(null);
+
+    try {
+      const result = await createPRs(token, scanId);
+      setPrUrls(result.pr_urls || []);
+    } catch (err) {
+      setPrError(
+        err instanceof Error ? err.message : "Failed to create pull requests"
+      );
+    } finally {
+      setPrLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <div className="animate-pulse text-dust-grey-400">
+          Loading scan results...
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !scan) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-4">
+        <XCircle className="h-8 w-8 text-red-400" />
+        <p className="text-dust-grey-600">{error || "Scan not found"}</p>
+        <Link
+          href="/dashboard"
+          className="text-sm text-hunter-green-600 hover:text-hunter-green-700"
+        >
+          Back to Dashboard
+        </Link>
+      </div>
+    );
+  }
+
+  const statusIcon =
+    scan.status === "completed" ? (
+      <CheckCircle2 className="h-5 w-5 text-hunter-green-600" />
+    ) : scan.status === "failed" ? (
+      <XCircle className="h-5 w-5 text-red-500" />
+    ) : (
+      <AlertTriangle className="h-5 w-5 text-yellow-500 animate-pulse" />
+    );
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, ease: "easeOut" }}
+      className="space-y-6"
+    >
+      {/* Back link */}
+      <Link
+        href="/dashboard"
+        className="inline-flex items-center gap-1.5 text-sm text-dust-grey-500 hover:text-dust-grey-700 transition-colors"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Back to Dashboard
+      </Link>
+
+      {/* Header */}
+      <div className="rounded-2xl border border-dust-grey-200 bg-white/80 shadow-xl shadow-dust-grey-200/40 backdrop-blur-sm p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="font-display italic text-2xl font-bold text-dust-grey-950">
+              {scan.repo_owner}/{scan.repo_name}
+            </h1>
+            <p className="mt-1 text-sm text-dust-grey-600">
+              Scanned on{" "}
+              {new Date(scan.created_at).toLocaleDateString("en-US", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {statusIcon}
+            <span className="text-sm font-medium capitalize text-dust-grey-800">
+              {scan.status}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Progress timeline */}
+      {scan.reasoning_log && scan.reasoning_log.length > 0 && (
+        <ScanProgress steps={scan.reasoning_log} />
+      )}
+
+      {/* Violations */}
+      {scan.violations && scan.violations.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="font-display italic text-xl font-bold text-dust-grey-950">
+              Violations ({scan.violations.length})
+            </h2>
+            <div className="flex items-center gap-3">
+              <span className="text-xs text-dust-grey-500">
+                {approvedIds.size} of {scan.violations.length} approved
+              </span>
+              <button
+                onClick={handleApproveAll}
+                className="rounded-xl bg-hunter-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-hunter-green-700 transition-colors"
+              >
+                Approve All
+              </button>
+              <button
+                onClick={handleCreatePRs}
+                disabled={approvedIds.size === 0 || prLoading}
+                className="rounded-xl bg-hunter-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-hunter-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {prLoading ? "Creating PRs..." : "Create PRs"}
+              </button>
+            </div>
+          </div>
+
+          {scan.violations.map((violation) => (
+            <ViolationCard
+              key={violation.id}
+              violation={violation}
+              isApproved={approvedIds.has(violation.id)}
+              onApprove={() => handleApprove(violation.id)}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Empty state */}
+      {scan.status === "completed" &&
+        (!scan.violations || scan.violations.length === 0) && (
+          <div className="rounded-2xl border border-dust-grey-200 bg-white/80 shadow-xl shadow-dust-grey-200/40 backdrop-blur-sm p-12 text-center">
+            <CheckCircle2 className="mx-auto h-10 w-10 text-hunter-green-500" />
+            <h3 className="mt-3 font-display italic text-lg font-bold text-dust-grey-950">
+              All Clear
+            </h3>
+            <p className="mt-1 text-sm text-dust-grey-600">
+              No compliance violations were found in this repository.
+            </p>
+          </div>
+        )}
+
+      {/* PR Status */}
+      {(prUrls.length > 0 || prLoading || prError) && (
+        <PrStatus urls={prUrls} loading={prLoading} error={prError} />
+      )}
+    </motion.div>
+  );
+}

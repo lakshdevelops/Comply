@@ -1,4 +1,3 @@
-import { ShieldCheck } from "lucide-react";
 import GitHubButton from "@/components/ui/GitHubButton";
 
 const footerLinks = [
@@ -10,19 +9,16 @@ const footerLinks = [
 
 export default function FooterSection() {
   return (
-    <footer className="border-t border-dust-grey-200/60 bg-dust-grey-50 py-12">
+    <footer className="border-t border-warm-grey-200 bg-warm-white py-12">
       <div className="mx-auto max-w-7xl px-6">
         {/* Main footer row */}
         <div className="flex flex-col gap-8 sm:flex-row sm:items-start sm:justify-between">
           {/* Brand */}
           <div className="flex flex-col gap-3 max-w-xs">
             <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-hunter-green-300">
-                <ShieldCheck className="h-4 w-4 text-hunter-green-900" />
-              </div>
-              <span className="font-display text-lg font-bold text-fern-800">Comply</span>
+              <span className="font-display text-lg font-semibold text-warm-grey-900">Comply</span>
             </div>
-            <p className="text-sm text-dry-sage-500 leading-relaxed">
+            <p className="text-sm text-warm-grey-500 leading-relaxed">
               Autonomous compliance for your infrastructure — audit, remediate,
               and ship fixes in minutes.
             </p>
@@ -34,7 +30,7 @@ export default function FooterSection() {
               <a
                 key={link.label}
                 href={link.href}
-                className="text-sm text-dry-sage-600 transition-colors hover:text-fern-800"
+                className="text-sm text-warm-grey-600 transition-colors hover:text-warm-grey-900"
               >
                 {link.label}
               </a>
@@ -48,11 +44,11 @@ export default function FooterSection() {
         </div>
 
         {/* Bottom bar */}
-        <div className="mt-10 flex flex-col gap-2 border-t border-dust-grey-200/40 pt-6 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-xs text-dust-grey-300">
+        <div className="mt-10 flex flex-col gap-2 border-t border-warm-grey-200 pt-6 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs text-warm-grey-400">
             &copy; {new Date().getFullYear()} Comply. Built with Next.js & Tailwind CSS.
           </p>
-          <p className="text-xs text-dust-grey-300">
+          <p className="text-xs text-warm-grey-400">
             Powered by multi-agent AI &mdash; Auditor · Strategist · Legal Advisor
           </p>
         </div>

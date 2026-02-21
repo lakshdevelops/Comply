@@ -16,7 +16,7 @@ export default function GoogleButton({
       type="button"
       onClick={onClick}
       disabled={isLoading}
-      className="flex w-full items-center justify-center gap-3 rounded-xl border border-dust-grey-300 bg-white px-4 py-3 text-sm font-medium text-dust-grey-800 shadow-sm transition-all duration-200 hover:bg-dust-grey-50 hover:border-dust-grey-400 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-hunter-green-500 focus-visible:ring-offset-2"
+      className="flex w-full items-center justify-center gap-3 rounded-xl border border-warm-grey-300 bg-white px-4 py-3 text-sm font-medium text-warm-grey-800 shadow-sm transition-all duration-200 hover:bg-warm-grey-50 hover:border-warm-grey-400 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-warm-brown-500 focus-visible:ring-offset-2"
     >
       {/* Google colour SVG */}
       <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
@@ -37,7 +37,7 @@ export default function GoogleButton({
           fill="#EA4335"
         />
       </svg>
-      {isLoading ? "Redirecting…" : label}
+      {isLoading ? "Redirecting\u2026" : label}
     </button>
   );
 }

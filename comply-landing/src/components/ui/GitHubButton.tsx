@@ -21,12 +21,12 @@ export default function GitHubButton({
       aria-label={label}
       className={`
         inline-flex items-center justify-center gap-2.5 font-semibold
-        rounded-xl border border-dust-grey-300 bg-dust-grey-100
-        text-dust-grey-950 transition-all duration-200
-        hover:bg-dust-grey-200 hover:border-hunter-green-400
+        rounded-xl border border-warm-grey-300 bg-warm-grey-100
+        text-warm-grey-900 transition-all duration-200
+        hover:bg-warm-grey-200 hover:border-warm-brown-400
         active:scale-95 focus:outline-none focus-visible:ring-2
-        focus-visible:ring-hunter-green-500 focus-visible:ring-offset-2
-        focus-visible:ring-offset-dust-grey-50
+        focus-visible:ring-warm-brown-500 focus-visible:ring-offset-2
+        focus-visible:ring-offset-warm-white
         ${isLarge ? "px-6 py-3 text-sm" : "px-4 py-2 text-xs"}
         ${className}
       `}

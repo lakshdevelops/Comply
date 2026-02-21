@@ -13,10 +13,10 @@ export default function DashboardPage() {
       className="space-y-8"
     >
       <div>
-        <h1 className="font-display italic text-2xl font-bold text-dust-grey-950">
+        <h1 className="font-display text-2xl font-bold text-warm-grey-900">
           Compliance Dashboard
         </h1>
-        <p className="mt-1 text-sm text-dust-grey-600">
+        <p className="mt-1 text-sm text-warm-grey-600">
           Connect your repository, scan for compliance violations, and ship
           fixes.
         </p>

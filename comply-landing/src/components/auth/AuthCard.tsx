@@ -12,7 +12,7 @@ export default function AuthCard({ children }: AuthCardProps) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4, ease: "easeOut" }}
-      className="w-full max-w-[460px] rounded-2xl border border-dust-grey-200 bg-white/80 shadow-xl shadow-dust-grey-200/40 backdrop-blur-sm p-8"
+      className="w-full max-w-[460px] rounded-2xl border border-warm-grey-200 bg-warm-grey-50 p-8"
     >
       {children}
     </motion.div>

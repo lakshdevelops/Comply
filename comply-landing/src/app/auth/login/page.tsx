@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ShieldCheck } from "lucide-react";
 import AuthCard from "@/components/auth/AuthCard";
 import GoogleButton from "@/components/auth/GoogleButton";
 import { useAuth } from "@/contexts/AuthContext";
@@ -35,14 +34,14 @@ export default function LoginPage() {
     <AuthCard>
       {/* Logo mark */}
       <div className="mb-6 flex flex-col items-center gap-3 text-center">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-hunter-green-200/60 border border-hunter-green-300/40">
-          <ShieldCheck className="h-6 w-6 text-hunter-green-700" />
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-warm-brown-100/60 border border-warm-brown-300/40">
+          <span className="font-display text-lg font-bold text-warm-brown-700">C</span>
         </div>
         <div>
-          <h1 className="font-display italic text-2xl font-bold text-dust-grey-950">
+          <h1 className="font-display text-2xl font-bold text-warm-grey-900">
             Welcome back
           </h1>
-          <p className="mt-1 text-sm text-dry-sage-600">
+          <p className="mt-1 text-sm text-warm-grey-600">
             Sign in to continue to Comply
           </p>
         </div>

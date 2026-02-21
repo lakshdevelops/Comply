@@ -98,19 +98,19 @@ export default function RepoConnect() {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: 0.1 }}
-      className="rounded-2xl border border-dust-grey-200 bg-white/80 shadow-xl shadow-dust-grey-200/40 backdrop-blur-sm p-6"
+      className="rounded-2xl border border-warm-grey-200 bg-warm-grey-50 p-6"
     >
-      <h2 className="font-display italic text-xl font-bold text-dust-grey-950">
+      <h2 className="font-display text-xl font-bold text-warm-grey-900">
         Repository
       </h2>
-      <p className="mt-1 text-sm text-dust-grey-600">
+      <p className="mt-1 text-sm text-warm-grey-600">
         Connect your GitHub account and select a repository to scan.
       </p>
 
       <div className="mt-5">
         {/* Loading state */}
         {state === "loading" && (
-          <div className="flex items-center gap-2 text-dust-grey-400">
+          <div className="flex items-center gap-2 text-warm-grey-400">
             <Loader2 className="h-4 w-4 animate-spin" />
             <span className="text-sm">Checking GitHub connection...</span>
           </div>
@@ -120,7 +120,7 @@ export default function RepoConnect() {
         {state === "disconnected" && (
           <button
             onClick={handleConnect}
-            className="flex items-center gap-2 rounded-xl bg-dust-grey-950 px-5 py-2.5 text-sm font-medium text-white hover:bg-dust-grey-800 transition-colors"
+            className="flex items-center gap-2 rounded-xl bg-warm-grey-900 px-5 py-2.5 text-sm font-medium text-white hover:bg-warm-grey-800 transition-colors"
           >
             <Github className="h-4 w-4" />
             Connect GitHub
@@ -132,7 +132,7 @@ export default function RepoConnect() {
           <div className="space-y-4">
             {/* Connected badge */}
             <div className="flex items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-hunter-green-300/50 bg-hunter-green-100/40 px-3 py-1 text-xs font-medium text-hunter-green-700">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-warm-brown-300/50 bg-warm-brown-100/40 px-3 py-1 text-xs font-medium text-warm-brown-700">
                 <CheckCircle2 className="h-3.5 w-3.5" />
                 Connected as @{username}
               </span>
@@ -141,7 +141,7 @@ export default function RepoConnect() {
             {/* Repo selector */}
             <div className="flex items-end gap-3">
               <div className="flex-1">
-                <label className="mb-1.5 block text-xs font-medium text-dust-grey-700">
+                <label className="mb-1.5 block text-xs font-medium text-warm-grey-700">
                   Select Repository
                 </label>
                 <div className="relative">
@@ -149,7 +149,7 @@ export default function RepoConnect() {
                     value={selectedRepo}
                     onChange={(e) => setSelectedRepo(e.target.value)}
                     disabled={state === "scanning"}
-                    className="w-full appearance-none rounded-xl border border-dust-grey-300 bg-white px-4 py-2.5 pr-10 text-sm text-dust-grey-800 focus:border-hunter-green-400 focus:outline-none focus:ring-1 focus:ring-hunter-green-400 disabled:opacity-50"
+                    className="w-full appearance-none rounded-xl border border-warm-grey-300 bg-white px-4 py-2.5 pr-10 text-sm text-warm-grey-800 focus:border-warm-brown-400 focus:outline-none focus:ring-1 focus:ring-warm-brown-400 disabled:opacity-50"
                   >
                     <option value="">Choose a repository...</option>
                     {repos.map((repo) => (
@@ -158,14 +158,14 @@ export default function RepoConnect() {
                       </option>
                     ))}
                   </select>
-                  <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-dust-grey-400" />
+                  <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-warm-grey-400" />
                 </div>
               </div>
 
               <button
                 onClick={handleScan}
                 disabled={!selectedRepo || state === "scanning"}
-                className="flex items-center gap-2 rounded-xl bg-hunter-green-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-hunter-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 rounded-xl bg-warm-brown-500 px-5 py-2.5 text-sm font-medium text-white hover:bg-warm-brown-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {state === "scanning" ? (
                   <>

@@ -95,9 +95,9 @@ export default function ViolationCard({
     <motion.div
       initial={{ opacity: 0, y: 6 }}
       animate={{ opacity: 1, y: 0 }}
-      className={`rounded-2xl border border-dust-grey-200 border-l-4 ${
-        isApproved ? "border-l-hunter-green-500" : config.borderColor
-      } bg-white/80 shadow-xl shadow-dust-grey-200/40 backdrop-blur-sm p-6 transition-colors`}
+      className={`rounded-2xl border border-warm-grey-200 border-l-4 ${
+        isApproved ? "border-l-warm-brown-500" : config.borderColor
+      } bg-warm-grey-50 p-6 transition-colors`}
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
@@ -110,27 +110,27 @@ export default function ViolationCard({
               {config.label}
             </span>
             {isApproved && (
-              <span className="inline-flex items-center gap-1 rounded-full border border-hunter-green-300/50 bg-hunter-green-100/40 px-2 py-0.5 text-[10px] font-medium text-hunter-green-700">
+              <span className="inline-flex items-center gap-1 rounded-full border border-warm-brown-300/50 bg-warm-brown-100/40 px-2 py-0.5 text-[10px] font-medium text-warm-brown-700">
                 <CheckCircle2 className="h-3 w-3" />
                 Approved
               </span>
             )}
           </div>
-          <p className="mt-2 text-sm font-medium text-dust-grey-950">
+          <p className="mt-2 text-sm font-medium text-warm-grey-900">
             {violation.description}
           </p>
         </div>
       </div>
 
       {/* File info */}
-      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-dust-grey-500">
+      <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-warm-grey-500">
         <span className="flex items-center gap-1">
           <FileText className="h-3 w-3" />
           {violation.file} (line {violation.line})
         </span>
         {violation.resource && (
           <span>
-            Resource: <span className="text-dust-grey-700">{violation.resource}</span>
+            Resource: <span className="text-warm-grey-700">{violation.resource}</span>
           </span>
         )}
       </div>
@@ -139,10 +139,10 @@ export default function ViolationCard({
       <div className="mt-4 space-y-3">
         {violation.explanation && (
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-dust-grey-400">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-warm-grey-400">
               What&apos;s Wrong
             </p>
-            <p className="mt-1 text-sm text-dust-grey-700">
+            <p className="mt-1 text-sm text-warm-grey-700">
               {violation.explanation}
             </p>
           </div>
@@ -150,10 +150,10 @@ export default function ViolationCard({
 
         {violation.regulation_citation && (
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-dust-grey-400">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-warm-grey-400">
               Regulation
             </p>
-            <p className="mt-1 text-sm text-dust-grey-700 font-mono">
+            <p className="mt-1 text-sm text-warm-grey-700 font-mono">
               {violation.regulation_citation}
             </p>
           </div>
@@ -161,10 +161,10 @@ export default function ViolationCard({
 
         {violation.what_needs_to_change && (
           <div>
-            <p className="text-[10px] font-bold uppercase tracking-wider text-dust-grey-400">
+            <p className="text-[10px] font-bold uppercase tracking-wider text-warm-grey-400">
               Proposed Change
             </p>
-            <p className="mt-1 text-sm text-dust-grey-700">
+            <p className="mt-1 text-sm text-warm-grey-700">
               {violation.what_needs_to_change}
             </p>
           </div>
@@ -172,11 +172,11 @@ export default function ViolationCard({
       </div>
 
       {/* Effort + Priority */}
-      <div className="mt-3 flex items-center gap-4 text-xs text-dust-grey-500">
+      <div className="mt-3 flex items-center gap-4 text-xs text-warm-grey-500">
         {violation.estimated_effort && (
           <span>
             Effort:{" "}
-            <span className="font-medium text-dust-grey-700">
+            <span className="font-medium text-warm-grey-700">
               {violation.estimated_effort}
             </span>
           </span>
@@ -184,7 +184,7 @@ export default function ViolationCard({
         {violation.priority && (
           <span>
             Priority:{" "}
-            <span className="font-medium text-dust-grey-700">
+            <span className="font-medium text-warm-grey-700">
               {violation.priority}
             </span>
           </span>
@@ -192,10 +192,10 @@ export default function ViolationCard({
       </div>
 
       {/* Actions */}
-      <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-dust-grey-100 pt-4">
+      <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-warm-grey-200 pt-4">
         <button
           onClick={handleExplain}
-          className="flex items-center gap-1.5 rounded-xl border border-dust-grey-300 bg-white px-3 py-1.5 text-xs font-medium text-dust-grey-800 hover:bg-dust-grey-50 transition-colors"
+          className="flex items-center gap-1.5 rounded-xl border border-warm-grey-300 bg-warm-grey-100 px-3 py-1.5 text-xs font-medium text-warm-grey-900 hover:bg-warm-grey-200 transition-colors"
         >
           <BookOpen className="h-3.5 w-3.5" />
           Explain Regulation
@@ -207,7 +207,7 @@ export default function ViolationCard({
         </button>
         <button
           onClick={() => setShowFix(!showFix)}
-          className="flex items-center gap-1.5 rounded-xl border border-dust-grey-300 bg-white px-3 py-1.5 text-xs font-medium text-dust-grey-800 hover:bg-dust-grey-50 transition-colors"
+          className="flex items-center gap-1.5 rounded-xl border border-warm-grey-300 bg-warm-grey-100 px-3 py-1.5 text-xs font-medium text-warm-grey-900 hover:bg-warm-grey-200 transition-colors"
         >
           <Code className="h-3.5 w-3.5" />
           View Sample Fix
@@ -221,8 +221,8 @@ export default function ViolationCard({
           onClick={onApprove}
           className={`ml-auto flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-medium transition-colors ${
             isApproved
-              ? "bg-hunter-green-600 text-white hover:bg-hunter-green-700"
-              : "border border-dust-grey-300 bg-white text-dust-grey-800 hover:bg-dust-grey-50"
+              ? "bg-warm-brown-500 text-white hover:bg-warm-brown-600"
+              : "border border-warm-grey-300 bg-warm-grey-100 text-warm-grey-900 hover:bg-warm-grey-200"
           }`}
         >
           <CheckCircle2 className="h-3.5 w-3.5" />
@@ -239,14 +239,14 @@ export default function ViolationCard({
             exit={{ opacity: 0, height: 0 }}
             className="overflow-hidden"
           >
-            <div className="mt-3 rounded-xl border border-dust-grey-200 bg-dust-grey-50 p-4">
+            <div className="mt-3 rounded-xl border border-warm-grey-200 bg-warm-grey-100 p-4">
               {explainLoading ? (
-                <div className="flex items-center gap-2 text-dust-grey-400">
+                <div className="flex items-center gap-2 text-warm-grey-400">
                   <Loader2 className="h-4 w-4 animate-spin" />
                   <span className="text-sm">Loading explanation...</span>
                 </div>
               ) : (
-                <p className="text-sm text-dust-grey-700 whitespace-pre-wrap">
+                <p className="text-sm text-warm-grey-700 whitespace-pre-wrap">
                   {explanation}
                 </p>
               )}
@@ -264,8 +264,8 @@ export default function ViolationCard({
             exit={{ opacity: 0, height: 0 }}
             className="overflow-hidden"
           >
-            <div className="mt-3 rounded-xl border border-dust-grey-200 bg-dust-grey-950 p-4">
-              <pre className="overflow-x-auto text-xs text-dust-grey-100 font-mono whitespace-pre-wrap">
+            <div className="mt-3 rounded-xl border border-warm-grey-200 bg-warm-grey-900 p-4">
+              <pre className="overflow-x-auto text-xs text-warm-grey-100 font-mono whitespace-pre-wrap">
                 {violation.sample_fix}
               </pre>
             </div>

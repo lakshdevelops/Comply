@@ -140,7 +140,7 @@ export default function ScanResultPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <div className="animate-pulse text-dust-grey-400">
+        <div className="animate-pulse text-warm-grey-400">
           Loading scan results...
         </div>
       </div>
@@ -151,10 +151,10 @@ export default function ScanResultPage() {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
         <XCircle className="h-8 w-8 text-red-400" />
-        <p className="text-dust-grey-600">{error || "Scan not found"}</p>
+        <p className="text-warm-grey-600">{error || "Scan not found"}</p>
         <Link
           href="/dashboard"
-          className="text-sm text-hunter-green-600 hover:text-hunter-green-700"
+          className="text-sm text-warm-brown-600 hover:text-warm-brown-700"
         >
           Back to Dashboard
         </Link>
@@ -164,7 +164,7 @@ export default function ScanResultPage() {
 
   const statusIcon =
     scan.status === "completed" ? (
-      <CheckCircle2 className="h-5 w-5 text-hunter-green-600" />
+      <CheckCircle2 className="h-5 w-5 text-warm-brown-600" />
     ) : scan.status === "failed" ? (
       <XCircle className="h-5 w-5 text-red-500" />
     ) : (
@@ -181,20 +181,20 @@ export default function ScanResultPage() {
       {/* Back link */}
       <Link
         href="/dashboard"
-        className="inline-flex items-center gap-1.5 text-sm text-dust-grey-500 hover:text-dust-grey-700 transition-colors"
+        className="inline-flex items-center gap-1.5 text-sm text-warm-grey-500 hover:text-warm-grey-700 transition-colors"
       >
         <ArrowLeft className="h-4 w-4" />
         Back to Dashboard
       </Link>
 
       {/* Header */}
-      <div className="rounded-2xl border border-dust-grey-200 bg-white/80 shadow-xl shadow-dust-grey-200/40 backdrop-blur-sm p-6">
+      <div className="rounded-2xl border border-warm-grey-200 bg-warm-grey-50 p-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="font-display italic text-2xl font-bold text-dust-grey-950">
+            <h1 className="font-display text-2xl font-bold text-warm-grey-900">
               {scan.repo_owner}/{scan.repo_name}
             </h1>
-            <p className="mt-1 text-sm text-dust-grey-600">
+            <p className="mt-1 text-sm text-warm-grey-600">
               Scanned on{" "}
               {new Date(scan.created_at).toLocaleDateString("en-US", {
                 year: "numeric",
@@ -207,7 +207,7 @@ export default function ScanResultPage() {
           </div>
           <div className="flex items-center gap-2">
             {statusIcon}
-            <span className="text-sm font-medium capitalize text-dust-grey-800">
+            <span className="text-sm font-medium capitalize text-warm-grey-800">
               {scan.status}
             </span>
           </div>
@@ -223,23 +223,23 @@ export default function ScanResultPage() {
       {scan.violations && scan.violations.length > 0 && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="font-display italic text-xl font-bold text-dust-grey-950">
+            <h2 className="font-display text-xl font-bold text-warm-grey-900">
               Violations ({scan.violations.length})
             </h2>
             <div className="flex items-center gap-3">
-              <span className="text-xs text-dust-grey-500">
+              <span className="text-xs text-warm-grey-500">
                 {approvedIds.size} of {scan.violations.length} approved
               </span>
               <button
                 onClick={handleApproveAll}
-                className="rounded-xl bg-hunter-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-hunter-green-700 transition-colors"
+                className="rounded-xl bg-warm-brown-500 px-4 py-2 text-sm font-medium text-white hover:bg-warm-brown-600 transition-colors"
               >
                 Approve All
               </button>
               <button
                 onClick={handleCreatePRs}
                 disabled={approvedIds.size === 0 || prLoading}
-                className="rounded-xl bg-hunter-green-600 px-4 py-2 text-sm font-medium text-white hover:bg-hunter-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="rounded-xl bg-warm-brown-500 px-4 py-2 text-sm font-medium text-white hover:bg-warm-brown-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {prLoading ? "Creating PRs..." : "Create PRs"}
               </button>
@@ -260,12 +260,12 @@ export default function ScanResultPage() {
       {/* Empty state */}
       {scan.status === "completed" &&
         (!scan.violations || scan.violations.length === 0) && (
-          <div className="rounded-2xl border border-dust-grey-200 bg-white/80 shadow-xl shadow-dust-grey-200/40 backdrop-blur-sm p-12 text-center">
-            <CheckCircle2 className="mx-auto h-10 w-10 text-hunter-green-500" />
-            <h3 className="mt-3 font-display italic text-lg font-bold text-dust-grey-950">
+          <div className="rounded-2xl border border-warm-grey-200 bg-warm-grey-50 p-12 text-center">
+            <CheckCircle2 className="mx-auto h-10 w-10 text-warm-brown-500" />
+            <h3 className="mt-3 font-display text-lg font-bold text-warm-grey-900">
               All Clear
             </h3>
-            <p className="mt-1 text-sm text-dust-grey-600">
+            <p className="mt-1 text-sm text-warm-grey-600">
               No compliance violations were found in this repository.
             </p>
           </div>

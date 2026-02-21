@@ -15,10 +15,10 @@ export default function PrStatus({ urls, loading, error }: PrStatusProps) {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
-      className="rounded-2xl border border-dust-grey-200 bg-white/80 shadow-xl shadow-dust-grey-200/40 backdrop-blur-sm p-6"
+      className="rounded-2xl border border-warm-grey-200 bg-warm-grey-50 p-6"
     >
-      <h3 className="flex items-center gap-2 font-display italic text-lg font-bold text-dust-grey-950">
-        <GitPullRequest className="h-5 w-5 text-hunter-green-600" />
+      <h3 className="flex items-center gap-2 font-display text-lg font-bold text-warm-grey-900">
+        <GitPullRequest className="h-5 w-5 text-warm-brown-600" />
         Pull Requests
       </h3>
 
@@ -26,15 +26,15 @@ export default function PrStatus({ urls, loading, error }: PrStatusProps) {
         {/* Loading */}
         {loading && (
           <div className="space-y-3">
-            <div className="flex items-center gap-2 text-dust-grey-500">
+            <div className="flex items-center gap-2 text-warm-grey-500">
               <Loader2 className="h-4 w-4 animate-spin" />
               <span className="text-sm">Generating fixes...</span>
             </div>
-            <div className="flex items-center gap-2 text-dust-grey-400">
+            <div className="flex items-center gap-2 text-warm-grey-400">
               <Loader2 className="h-4 w-4 animate-spin" />
               <span className="text-sm">Running QA checks...</span>
             </div>
-            <div className="flex items-center gap-2 text-dust-grey-300">
+            <div className="flex items-center gap-2 text-warm-grey-300">
               <Loader2 className="h-4 w-4 animate-spin" />
               <span className="text-sm">Creating pull requests...</span>
             </div>
@@ -58,7 +58,7 @@ export default function PrStatus({ urls, loading, error }: PrStatusProps) {
                 href={url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 rounded-xl border border-hunter-green-200 bg-hunter-green-50/50 px-4 py-3 text-sm font-medium text-hunter-green-700 hover:bg-hunter-green-100/50 transition-colors"
+                className="flex items-center gap-2 rounded-xl border border-warm-brown-200 bg-warm-brown-50/50 px-4 py-3 text-sm font-medium text-warm-brown-700 hover:bg-warm-brown-100/50 transition-colors"
               >
                 <GitPullRequest className="h-4 w-4" />
                 <span className="flex-1 truncate">{url}</span>
@@ -70,7 +70,7 @@ export default function PrStatus({ urls, loading, error }: PrStatusProps) {
 
         {/* Empty */}
         {!loading && !error && urls.length === 0 && (
-          <p className="text-sm text-dust-grey-500">
+          <p className="text-sm text-warm-grey-500">
             No pull requests created yet.
           </p>
         )}

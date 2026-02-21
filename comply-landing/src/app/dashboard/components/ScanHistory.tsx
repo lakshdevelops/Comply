@@ -10,9 +10,10 @@ import {
   AlertTriangle,
   Clock,
   ChevronRight,
+  Trash2,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { getScans } from "@/lib/api";
+import { getScans, deleteScan } from "@/lib/api";
 
 interface Scan {
   id: string;
@@ -44,6 +45,19 @@ export default function ScanHistory() {
   useEffect(() => {
     fetchScans();
   }, [fetchScans]);
+
+  const handleDelete = async (e: React.MouseEvent, scanId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const token = await getIdToken();
+    if (!token) return;
+    try {
+      await deleteScan(token, scanId);
+      setScans((prev) => prev.filter((s) => s.id !== scanId));
+    } catch {
+      // silently handle
+    }
+  };
 
   const statusConfig = {
     completed: {
@@ -135,6 +149,13 @@ export default function ScanHistory() {
                         {scan.violation_count !== 1 ? "s" : ""}
                       </span>
                     )}
+                    <button
+                      onClick={(e) => handleDelete(e, scan.id)}
+                      className="rounded-lg p-1 text-warm-grey-400 hover:bg-red-50 hover:text-red-500 transition-colors"
+                      title="Delete scan"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
                     <ChevronRight className="h-4 w-4 text-warm-grey-400 group-hover:text-warm-grey-600 transition-colors" />
                   </div>
                 </Link>

@@ -193,7 +193,7 @@ def list_scans(user: dict = Depends(get_current_user)):
         db2.close()
         scans.append(
             {
-                "scan_id": row["id"],
+                "id": row["id"],
                 "repo_url": row["repo_url"],
                 "repo_owner": row["repo_owner"],
                 "repo_name": row["repo_name"],
@@ -204,7 +204,7 @@ def list_scans(user: dict = Depends(get_current_user)):
             }
         )
 
-    return scans
+    return {"scans": scans}
 
 
 @router.get("/scans/{scan_id}")
@@ -260,3 +260,29 @@ def get_scan(scan_id: str, user: dict = Depends(get_current_user)):
         "reasoning_log": reasoning,
         "pull_requests": prs,
     }
+
+
+@router.delete("/scans/{scan_id}")
+def delete_scan(scan_id: str, user: dict = Depends(get_current_user)):
+    """Delete a scan and all related data."""
+    user_id = user["uid"]
+    db = get_db()
+
+    scan = db.execute(
+        "SELECT id FROM scans WHERE id = ? AND user_id = ?", (scan_id, user_id)
+    ).fetchone()
+    if not scan:
+        db.close()
+        raise HTTPException(status_code=404, detail="Scan not found")
+
+    db.execute("DELETE FROM reasoning_log WHERE scan_id = ?", (scan_id,))
+    db.execute("DELETE FROM pull_requests WHERE scan_id = ?", (scan_id,))
+    db.execute("DELETE FROM qa_results WHERE scan_id = ?", (scan_id,))
+    db.execute("DELETE FROM approved_fixes WHERE scan_id = ?", (scan_id,))
+    db.execute("DELETE FROM remediation_plans WHERE scan_id = ?", (scan_id,))
+    db.execute("DELETE FROM violations WHERE scan_id = ?", (scan_id,))
+    db.execute("DELETE FROM scans WHERE id = ?", (scan_id,))
+    db.commit()
+    db.close()
+
+    return {"detail": "Scan deleted"}

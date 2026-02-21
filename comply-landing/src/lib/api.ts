@@ -53,6 +53,9 @@ export const getScans = (token: string) => apiFetch("/scans", {}, token);
 export const getScan = (token: string, scanId: string) =>
   apiFetch(`/scans/${scanId}`, {}, token);
 
+export const deleteScan = (token: string, scanId: string) =>
+  apiFetch(`/scans/${scanId}`, { method: "DELETE" }, token);
+
 // Fixes
 export const approveFixes = (
   token: string,

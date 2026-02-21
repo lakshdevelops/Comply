@@ -1,2 +1,3 @@
-import { handlers } from "@/auth";
-export const { GET, POST } = handlers;
+// NextAuth removed. Auth is handled by Firebase Authentication.
+// See src/contexts/AuthContext.tsx
+export {};

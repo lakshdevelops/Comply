@@ -1,17 +1,34 @@
 "use client";
 
-import { useState } from "react";
-import { signIn } from "next-auth/react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { ShieldCheck } from "lucide-react";
 import AuthCard from "@/components/auth/AuthCard";
 import GoogleButton from "@/components/auth/GoogleButton";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function LoginPage() {
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const { signInWithGoogle, user } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
+
+  // Redirect if already signed in
+  useEffect(() => {
+    if (user) router.push("/dashboard");
+  }, [user, router]);
 
   const handleGoogle = async () => {
-    setIsGoogleLoading(true);
-    await signIn("google", { callbackUrl: "/dashboard" });
+    setIsLoading(true);
+    setError(null);
+    try {
+      await signInWithGoogle();
+      router.push("/dashboard");
+    } catch {
+      setError("Sign in failed. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -35,8 +52,12 @@ export default function LoginPage() {
       <GoogleButton
         label="Sign in with Google"
         onClick={handleGoogle}
-        isLoading={isGoogleLoading}
+        isLoading={isLoading}
       />
+
+      {error && (
+        <p className="mt-3 text-center text-sm text-red-500">{error}</p>
+      )}
     </AuthCard>
   );
 }

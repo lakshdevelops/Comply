@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import RedirectResponse
 from app.api.deps import get_current_user
+from app.core.security import _ensure_firebase_initialized
 from app.core.config import settings
 from app.database import get_db
 from app.services.github_service import (
@@ -8,6 +9,7 @@ from app.services.github_service import (
     get_user_info,
     get_user_repos,
 )
+from firebase_admin import auth as firebase_auth
 import uuid
 from datetime import datetime
 import urllib.parse
@@ -16,8 +18,18 @@ router = APIRouter()
 
 
 @router.get("/authorize")
-def github_authorize(user: dict = Depends(get_current_user)):
-    """Redirect to GitHub OAuth. Frontend should open this URL."""
+def github_authorize(token: str = Query(...)):
+    """Redirect to GitHub OAuth. Frontend opens this URL via browser redirect,
+    so the token is passed as a query parameter (not a Bearer header)."""
+    _ensure_firebase_initialized()
+    try:
+        user = firebase_auth.verify_id_token(token)
+    except firebase_auth.ExpiredIdTokenError:
+        raise HTTPException(status_code=401, detail="Token has expired. Please sign in again.")
+    except firebase_auth.InvalidIdTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token.")
+    except Exception:
+        raise HTTPException(status_code=401, detail="Authentication failed.")
     state = user["uid"]  # Use Firebase UID as state
     params = urllib.parse.urlencode(
         {
@@ -74,7 +86,7 @@ def github_status(user: dict = Depends(get_current_user)):
     db.close()
 
     if row:
-        return {"connected": True, "github_username": row["github_username"]}
+        return {"connected": True, "username": row["github_username"]}
     return {"connected": False}
 
 
@@ -92,4 +104,4 @@ def list_repos(user: dict = Depends(get_current_user)):
         raise HTTPException(status_code=400, detail="GitHub not connected")
 
     repos = get_user_repos(row["access_token"])
-    return repos
+    return {"repos": repos}

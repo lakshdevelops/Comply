@@ -37,8 +37,18 @@ export default function SignUpPage() {
     try {
       await signInWithGoogle();
       router.push(getRedirectUrl());
-    } catch {
-      setError("Sign up failed. Please try again.");
+    } catch (err: unknown) {
+      console.error("Google sign-up error:", err);
+      const code = (err as { code?: string })?.code;
+      if (code === "auth/popup-closed-by-user") {
+        setError(null); // user cancelled, no error needed
+      } else if (code === "auth/popup-blocked") {
+        setError("Popup was blocked. Please allow popups for this site.");
+      } else if (code === "auth/unauthorized-domain") {
+        setError("This domain is not authorised for sign-in. Check Firebase console.");
+      } else {
+        setError("Sign up failed. Please try again.");
+      }
     } finally {
       setIsLoading(false);
     }

@@ -110,6 +110,9 @@ export const createSubscription = (
 export const cancelSubscription = (token: string) =>
   apiFetch("/billing/cancel", { method: "POST" }, token);
 
+export const confirmSubscription = (token: string) =>
+  apiFetch("/billing/confirm-subscription", { method: "POST" }, token);
+
 export const getUsageSummary = (token: string) =>
   apiFetch("/billing/usage", {}, token);
 

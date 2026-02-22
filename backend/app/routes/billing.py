@@ -15,6 +15,7 @@ from app.models.schemas import (
 )
 from app.services.stripe_service import (
     cancel_subscription,
+    confirm_subscription,
     create_or_get_customer,
     create_subscription,
     get_price_id,
@@ -76,6 +77,17 @@ def cancel(user: dict = Depends(get_current_user)):
     init_stripe()
     cancel_subscription(user["uid"])
     return {"status": "canceled"}
+
+
+@router.post("/billing/confirm-subscription")
+def confirm_sub(user: dict = Depends(get_current_user)):
+    """Check subscription status directly against Stripe and update Firestore.
+
+    Called by the frontend after payment succeeds so the app doesn't have to
+    wait for the Stripe webhook to arrive."""
+    init_stripe()
+    sub = confirm_subscription(user["uid"])
+    return sub
 
 
 # ── Stripe webhooks (no auth – Stripe signs the request) ─────────────

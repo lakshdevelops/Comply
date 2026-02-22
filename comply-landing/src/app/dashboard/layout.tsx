@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { LogOut, Home, LayoutDashboard } from "lucide-react";
+import { LogOut, Home } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useAuth } from "@/contexts/AuthContext";
 import AuthGuard from "@/components/auth/AuthGuard";
-import { PlanProvider } from "@/contexts/PlanContext";
+import PlanGuard from "@/components/auth/PlanGuard";
+import PlanBadge from "@/components/ui/PlanBadge";
 
 export default function DashboardLayout({
   children,
@@ -15,14 +16,14 @@ export default function DashboardLayout({
 }) {
   return (
     <AuthGuard>
-      <PlanProvider>
+      <PlanGuard>
         <div className="min-h-screen bg-warm-white">
           <TopNav />
           <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
             {children}
           </main>
         </div>
-      </PlanProvider>
+      </PlanGuard>
     </AuthGuard>
   );
 }
@@ -69,6 +70,7 @@ function TopNav() {
             <span className="hidden max-w-[120px] truncate sm:block">
               {user?.displayName ?? user?.email}
             </span>
+            <PlanBadge />
           </button>
 
           <AnimatePresence>

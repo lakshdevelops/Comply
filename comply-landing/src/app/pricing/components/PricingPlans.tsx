@@ -60,16 +60,26 @@ const plans: Plan[] = [
   },
 ];
 
+// ── Plan hierarchy ──────────────────────────────────────────────────
+
+const PLAN_RANK: Record<string, number> = {
+  free: 0,
+  starter: 1,
+  pro: 2,
+  enterprise: 3,
+};
+
 // ── Props ───────────────────────────────────────────────────────────
 
 interface PricingPlansProps {
+  currentPlan?: string;
   onSelectPlan: (plan: "starter" | "pro", interval: "monthly" | "annual") => void;
   onEnterprise: () => void;
 }
 
 // ── Component ───────────────────────────────────────────────────────
 
-export default function PricingPlans({ onSelectPlan, onEnterprise }: PricingPlansProps) {
+export default function PricingPlans({ currentPlan = "free", onSelectPlan, onEnterprise }: PricingPlansProps) {
   const [annual, setAnnual] = useState(false);
 
   return (
@@ -142,6 +152,20 @@ export default function PricingPlans({ onSelectPlan, onEnterprise }: PricingPlan
             const price = annual ? plan.annualPrice : plan.monthlyPrice;
             const isEnterprise = plan.key === "enterprise";
 
+            const currentRank = PLAN_RANK[currentPlan] ?? 0;
+            const cardRank = PLAN_RANK[plan.key] ?? 0;
+            const isCurrent = plan.key === currentPlan;
+            const isDowngrade = cardRank < currentRank;
+            const isUpgrade = cardRank > currentRank;
+
+            // Determine CTA label
+            let ctaLabel = plan.cta;
+            if (isCurrent) ctaLabel = "Current Plan";
+            else if (isDowngrade) ctaLabel = "Current Plan Includes This";
+            else if (isUpgrade && !isEnterprise) ctaLabel = "Upgrade";
+
+            const ctaDisabled = isCurrent || isDowngrade;
+
             return (
               <motion.div
                 key={plan.key}
@@ -151,16 +175,24 @@ export default function PricingPlans({ onSelectPlan, onEnterprise }: PricingPlan
                 transition={{ duration: 0.45, delay: i * 0.12 }}
                 whileHover={{ y: -4 }}
                 className={`relative flex flex-col rounded-2xl border p-7 transition-colors ${
-                  plan.highlighted
-                    ? "border-warm-brown-400 bg-warm-brown-50/30 shadow-lg shadow-warm-brown-100/40"
-                    : "border-warm-grey-200 bg-warm-grey-50 hover:border-warm-brown-300/60"
+                  isCurrent
+                    ? "border-warm-brown-500 bg-warm-brown-50/40 shadow-lg shadow-warm-brown-200/50 ring-2 ring-warm-brown-400/30"
+                    : plan.highlighted && !isDowngrade
+                      ? "border-warm-brown-400 bg-warm-brown-50/30 shadow-lg shadow-warm-brown-100/40"
+                      : "border-warm-grey-200 bg-warm-grey-50 hover:border-warm-brown-300/60"
                 }`}
               >
-                {/* Most Popular badge */}
-                {plan.highlighted && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 inline-flex items-center gap-1 rounded-full bg-warm-brown-500 px-3 py-1 text-xs font-semibold text-white">
-                    <Sparkles className="h-3 w-3" /> Most Popular
+                {/* Badge: Current Plan or Most Popular */}
+                {isCurrent ? (
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 inline-flex items-center gap-1 rounded-full bg-warm-brown-600 px-3 py-1 text-xs font-semibold text-white">
+                    <Check className="h-3 w-3" /> Current Plan
                   </span>
+                ) : (
+                  plan.highlighted && !isDowngrade && (
+                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 inline-flex items-center gap-1 rounded-full bg-warm-brown-500 px-3 py-1 text-xs font-semibold text-white">
+                      <Sparkles className="h-3 w-3" /> Most Popular
+                    </span>
+                  )
                 )}
 
                 {/* Plan name */}
@@ -220,13 +252,16 @@ export default function PricingPlans({ onSelectPlan, onEnterprise }: PricingPlan
                       ? onEnterprise()
                       : onSelectPlan(plan.key as "starter" | "pro", annual ? "annual" : "monthly")
                   }
-                  className={`w-full rounded-xl px-6 py-3 text-sm font-semibold transition-all duration-200 active:scale-95 ${
-                    plan.highlighted
-                      ? "bg-warm-brown-500 text-white hover:bg-warm-brown-600 shadow-sm"
-                      : "border border-warm-grey-300 bg-warm-grey-100 text-warm-grey-900 hover:bg-warm-grey-200"
+                  disabled={ctaDisabled}
+                  className={`w-full rounded-xl px-6 py-3 text-sm font-semibold transition-all duration-200 ${
+                    ctaDisabled
+                      ? "cursor-default border border-warm-grey-200 bg-warm-grey-100 text-warm-grey-400"
+                      : plan.highlighted
+                        ? "bg-warm-brown-500 text-white hover:bg-warm-brown-600 shadow-sm active:scale-95"
+                        : "border border-warm-grey-300 bg-warm-grey-100 text-warm-grey-900 hover:bg-warm-grey-200 active:scale-95"
                   }`}
                 >
-                  {plan.cta}
+                  {ctaLabel}
                 </button>
               </motion.div>
             );

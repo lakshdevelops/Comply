@@ -1,5 +1,46 @@
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Literal, Optional
+
+
+# ── Plan feature matrix ─────────────────────────────────────────────
+PLAN_FEATURES = {
+    "free": {
+        "continuous_scanning": False,
+        "auto_pr": False,
+        "legal_agent": False,
+        "audit_logging": False,
+        "sso": False,
+        "max_repos": 1,
+        "max_agent_runs": 50,
+    },
+    "starter": {
+        "continuous_scanning": False,
+        "auto_pr": False,
+        "legal_agent": False,
+        "audit_logging": False,
+        "sso": False,
+        "max_repos": 1,
+        "max_agent_runs": 500,
+    },
+    "pro": {
+        "continuous_scanning": True,
+        "auto_pr": True,
+        "legal_agent": False,
+        "audit_logging": True,
+        "sso": False,
+        "max_repos": 10,
+        "max_agent_runs": 5000,
+    },
+    "enterprise": {
+        "continuous_scanning": True,
+        "auto_pr": True,
+        "legal_agent": True,
+        "audit_logging": True,
+        "sso": True,
+        "max_repos": -1,          # unlimited
+        "max_agent_runs": -1,     # unlimited
+    },
+}
 
 
 class Violation(BaseModel):
@@ -73,3 +114,40 @@ class PRResponse(BaseModel):
 class ChatRequest(BaseModel):
     scan_id: str
     question: str
+
+
+# ── Billing / Pricing ───────────────────────────────────────────────
+
+class CreateCheckoutRequest(BaseModel):
+    plan: Literal["starter", "pro"]
+    billing_interval: Literal["monthly", "annual"]
+
+
+class SubscriptionResponse(BaseModel):
+    plan: str
+    status: str
+    current_period_end: Optional[str] = None
+    billing_interval: Optional[str] = None
+    features: dict
+
+
+class UsageEvent(BaseModel):
+    event_type: Literal["agent_run", "infra_scan", "pull_request", "legal_reasoning"]
+    quantity: float = 1.0
+    metadata: Optional[dict] = None
+
+
+class UsageSummary(BaseModel):
+    agent_runs: int = 0
+    infra_scans: int = 0
+    pull_requests: int = 0
+    legal_tokens: float = 0.0
+    period_start: str
+    period_end: str
+
+
+class EnterpriseContactRequest(BaseModel):
+    name: str
+    email: str
+    company: str
+    message: str = ""

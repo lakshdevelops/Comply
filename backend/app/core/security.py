@@ -11,7 +11,7 @@ _SERVICE_ACCOUNT_PATH = os.path.join(_BASE_DIR, "serviceAccount.json")
 bearer_scheme = HTTPBearer()
 
 
-def _ensure_firebase_initialized() -> None:
+def ensure_firebase_initialized() -> None:
     """Lazily initialize Firebase Admin SDK on first use.
 
     This avoids a hard crash at import time when the serviceAccount.json
@@ -27,6 +27,10 @@ def _ensure_firebase_initialized() -> None:
         )
     cred = credentials.Certificate(_SERVICE_ACCOUNT_PATH)
     firebase_admin.initialize_app(cred)
+
+
+# Keep the private name for backwards compat
+_ensure_firebase_initialized = ensure_firebase_initialized
 
 
 def get_current_user(

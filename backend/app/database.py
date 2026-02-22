@@ -138,5 +138,8 @@ def init_db() -> None:
         )
     """)
 
+    # Billing data (subscriptions, usage_events, enterprise_requests) is stored
+    # in Firestore – not in SQLite.
+
     conn.commit()
     conn.close()

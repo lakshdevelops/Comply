@@ -1,5 +1,3 @@
-import GitHubButton from "@/components/ui/GitHubButton";
-
 const footerLinks = [
   { label: "Documentation", href: "#" },
   { label: "Privacy Policy", href: "#" },
@@ -36,11 +34,6 @@ export default function FooterSection() {
               </a>
             ))}
           </nav>
-
-          {/* CTA */}
-          <div className="shrink-0">
-            <GitHubButton size="sm" label="Sign up with GitHub" />
-          </div>
         </div>
 
         {/* Bottom bar */}

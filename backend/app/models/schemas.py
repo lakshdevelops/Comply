@@ -151,3 +151,134 @@ class EnterpriseContactRequest(BaseModel):
     email: str
     company: str
     message: str = ""
+
+
+# ── Comp.ly Integration: Enums ────────────────────────────────────
+
+from enum import Enum
+
+class ComplianceFramework(str, Enum):
+    GDPR = "GDPR"
+    DORA = "DORA"
+    ISO27001 = "ISO27001"
+    SOC2 = "SOC2"
+    HIPAA = "HIPAA"
+    PCI_DSS = "PCI-DSS"
+
+class CloudProvider(str, Enum):
+    AWS = "AWS"
+    AZURE = "Azure"
+    GCP = "GCP"
+    MULTI_CLOUD = "Multi-Cloud"
+
+class InfrastructureType(str, Enum):
+    TERRAFORM = "Terraform"
+    KUBERNETES = "Kubernetes"
+    CLOUDFORMATION = "CloudFormation"
+    MIXED = "Mixed"
+
+class Severity(str, Enum):
+    P0 = "P0"
+    P1 = "P1"
+    P2 = "P2"
+
+
+# ── Comp.ly Integration: Consultancy ──────────────────────────────
+
+class CreateConsultancyRequest(BaseModel):
+    name: str
+
+class ConsultancyResponse(BaseModel):
+    id: str
+    name: str
+    created_by: str
+    plan: str
+    created_at: str
+
+
+# ── Comp.ly Integration: Workspace ────────────────────────────────
+
+class CreateWorkspaceRequest(BaseModel):
+    client_name: str
+    client_industry: str
+    compliance_frameworks: List[ComplianceFramework]
+    cloud_provider: CloudProvider
+    infrastructure_type: InfrastructureType
+
+class WorkspaceResponse(BaseModel):
+    id: str
+    consultancy_id: str
+    client_name: str
+    client_industry: str
+    compliance_frameworks: List[str]
+    cloud_provider: str
+    infrastructure_type: str
+    status: str
+    created_by: str
+    created_at: str
+
+
+# ── Comp.ly Integration: GitHub (workspace-scoped) ────────────────
+
+class GitHubConnectRequest(BaseModel):
+    code: str
+    redirect_uri: str
+
+class ConnectRepoRequest(BaseModel):
+    full_name: str
+    default_branch: str = "main"
+
+
+# ── Comp.ly Integration: Scan (workspace-scoped) ─────────────────
+
+class TriggerScanRequest(BaseModel):
+    repo_id: str
+
+class ScanSummary(BaseModel):
+    total_findings: int = 0
+    p0: int = 0
+    p1: int = 0
+    p2: int = 0
+
+class WorkspaceScanResponse(BaseModel):
+    id: str
+    repo_id: str
+    commit_sha: str
+    status: str
+    triggered_by: str
+    started_at: str
+    completed_at: Optional[str] = None
+    summary: Optional[ScanSummary] = None
+
+
+# ── Comp.ly Integration: Findings & Plans ─────────────────────────
+
+class FindingSchema(BaseModel):
+    severity: Severity
+    rule_id: str
+    regulation_ref: str
+    title: str
+    description: str
+    file_path: str
+    line_start: int
+    line_end: int
+    evidence: str
+    confidence: float
+
+class ApprovePlanResponse(BaseModel):
+    plan_id: str
+    approved: bool
+    approved_by: str
+
+
+# ── Comp.ly Integration: Document ─────────────────────────────────
+
+class DocumentMetadata(BaseModel):
+    id: str
+    name: str
+    storage_path: str
+    download_url: str
+    size: int
+    content_type: str
+    uploaded_by: str
+    uploaded_at: str

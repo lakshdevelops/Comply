@@ -26,4 +26,13 @@ class Settings:
     STRIPE_PRICE_PRO_MONTHLY: str = os.getenv("STRIPE_PRICE_PRO_MONTHLY", "")
     STRIPE_PRICE_PRO_ANNUAL: str = os.getenv("STRIPE_PRICE_PRO_ANNUAL", "")
 
+    # Comp.ly integration settings
+    FIREBASE_PROJECT_ID: str = os.getenv("FIREBASE_PROJECT_ID", "comply-hackep")
+    ENCRYPTION_KEY: str = os.getenv("ENCRYPTION_KEY", "")
+    MCP_SERVER_PATH: str = os.getenv("MCP_SERVER_PATH", "../open-legal-compliance-mcp")
+    GOVINFO_API_KEY: str = os.getenv("GOVINFO_API_KEY", "")
+    COURTLISTENER_API_KEY: str = os.getenv("COURTLISTENER_API_KEY", "")
+    CONGRESS_GOV_API_KEY: str = os.getenv("CONGRESS_GOV_API_KEY", "")
+    OPEN_STATES_API_KEY: str = os.getenv("OPEN_STATES_API_KEY", "")
+
 settings = Settings()

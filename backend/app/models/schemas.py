@@ -68,3 +68,8 @@ class PRResponse(BaseModel):
     scan_id: str
     pull_requests: List[dict] = []
     reasoning_log: List[dict] = []
+
+
+class ChatRequest(BaseModel):
+    scan_id: str
+    question: str

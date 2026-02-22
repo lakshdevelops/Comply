@@ -33,6 +33,9 @@ export const getGitHubRepos = (token: string) =>
 export const getGitHubAuthorizeUrl = (token: string) =>
   `${API_BASE}/github/authorize?token=${encodeURIComponent(token)}`;
 
+export const disconnectGitHub = (token: string) =>
+  apiFetch("/github/disconnect", { method: "DELETE" }, token);
+
 // Scans
 export const triggerScan = (
   token: string,
@@ -91,3 +94,14 @@ export const explainRegulation = (token: string, regulationRef: string) =>
     },
     token
   );
+
+// Chat
+export const getChatHistory = (token: string, scanId: string) =>
+  apiFetch(`/chat/${scanId}`, {}, token);
+
+export const getChatStreamUrl = (
+  token: string,
+  scanId: string,
+  question: string
+) =>
+  `${API_BASE}/chat/${scanId}/stream?token=${encodeURIComponent(token)}&question=${encodeURIComponent(question)}`;

@@ -79,7 +79,6 @@ export default function ScanResultPage() {
   const params = useParams();
   const scanId = params.id as string;
   const { getIdToken } = useAuth();
-  const { hasFeature } = usePlan();
 
   /* --- core state ------------------------------------------------- */
   const [scanStatus, setScanStatus] = useState<ScanStatus>("connecting");

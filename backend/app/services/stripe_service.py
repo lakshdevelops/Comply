@@ -5,6 +5,7 @@ enterprise_requests). SQLite is not used by this module.
 """
 
 from datetime import datetime, timezone
+from typing import Optional
 
 import stripe
 from firebase_admin import firestore
@@ -381,7 +382,7 @@ def record_usage(
     user_id: str,
     event_type: str,
     quantity: float = 1.0,
-    metadata: dict | None = None,
+    metadata: Optional[dict] = None,
 ) -> None:
     fs = _fs()
     fs.collection("usage_events").add(

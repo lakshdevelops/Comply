@@ -16,6 +16,7 @@ Diagram shortcut:
 
 import urllib.parse
 from datetime import datetime
+from typing import Optional
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -165,7 +166,7 @@ async def miro_call_tool(req: ToolCallRequest, user: dict = Depends(get_current_
 
 class DiagramRequest(BaseModel):
     scan_id: str
-    board_id: str | None = None   # optional: attach to existing board
+    board_id: Optional[str] = None   # optional: attach to existing board
 
 
 @router.post("/diagram")

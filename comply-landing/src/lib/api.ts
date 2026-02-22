@@ -1,55 +1,64 @@
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+import { auth } from "./firebase";
+import type {
+  Consultancy,
+  Workspace,
+  WorkspaceScan,
+  Finding,
+  FixPlan,
+  WorkspaceDocument,
+} from "@/types/comply";
 
-async function apiFetch(
-  path: string,
-  options: RequestInit = {},
-  token: string
-) {
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api/v1";
+
+async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const user = auth.currentUser;
+  const token = user ? await user.getIdToken() : null;
+
   const res = await fetch(`${API_BASE}${path}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
       ...options.headers,
     },
   });
+
   if (!res.ok) {
-    const error = await res
-      .json()
-      .catch(() => ({ detail: "Request failed" }));
-    throw new Error(error.detail || `API error: ${res.status}`);
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.detail || `API error ${res.status}`);
   }
+
+  if (res.status === 204) return undefined as T;
   return res.json();
 }
 
-// GitHub
-export const getGitHubStatus = (token: string) =>
-  apiFetch("/github/status", {}, token);
+// Consultancies
+export async function createConsultancy(name: string): Promise<Consultancy> {
+  return apiFetch("/consultancies", { method: "POST", body: JSON.stringify({ name }) });
+}
 
-export const getGitHubRepos = (token: string) =>
-  apiFetch("/github/repos", {}, token);
+export async function getConsultancy(id: string): Promise<Consultancy> {
+  return apiFetch(`/consultancies/${id}`);
+}
 
-export const getGitHubAuthorizeUrl = (token: string) =>
-  `${API_BASE}/github/authorize?token=${encodeURIComponent(token)}`;
+// Workspaces
+export async function listWorkspaces(): Promise<Workspace[]> {
+  return apiFetch("/workspaces");
+}
 
-export const disconnectGitHub = (token: string) =>
-  apiFetch("/github/disconnect", { method: "DELETE" }, token);
+export async function createWorkspace(data: {
+  client_name: string;
+  client_industry: string;
+  compliance_frameworks: string[];
+  cloud_provider: string;
+  infrastructure_type: string;
+}): Promise<Workspace> {
+  return apiFetch("/workspaces", { method: "POST", body: JSON.stringify(data) });
+}
 
-// Scans
-export const triggerScan = (
-  token: string,
-  repoOwner: string,
-  repoName: string
-) =>
-  apiFetch(
-    "/scan",
-    {
-      method: "POST",
-      body: JSON.stringify({ repo_owner: repoOwner, repo_name: repoName }),
-    },
-    token
-  );
+export async function getWorkspace(id: string): Promise<Workspace> {
+  return apiFetch(`/workspaces/${id}`);
+}
 
 export const getScans = (token: string) => apiFetch("/scans", {}, token);
 
@@ -151,25 +160,67 @@ export const submitEnterpriseContact = (
     return r.json();
   });
 
-export const getStripeConfig = () =>
-  fetch(`${API_BASE}/billing/config`).then((r) => {
-    if (!r.ok) throw new Error("Failed to load Stripe config");
-    return r.json();
+// Workspace GitHub
+export async function connectWorkspaceGitHub(
+  workspaceId: string, code: string, redirectUri: string
+): Promise<{ connected: boolean; githubUsername: string }> {
+  return apiFetch(`/workspaces/${workspaceId}/github/connect`, {
+    method: "POST", body: JSON.stringify({ code, redirect_uri: redirectUri }),
   });
+}
 
-// Miro
-export const getMiroStatus = (token: string) =>
-  apiFetch("/miro/status", {}, token);
+export async function listWorkspaceGitHubRepos(
+  workspaceId: string
+): Promise<{ repos: { full_name: string; default_branch: string }[] }> {
+  return apiFetch(`/workspaces/${workspaceId}/github/repos`);
+}
 
-export const getMiroAuthorizeUrl = (token: string) =>
-  `${API_BASE}/miro/authorize?token=${encodeURIComponent(token)}`;
+export async function connectWorkspaceRepo(
+  workspaceId: string, fullName: string, defaultBranch: string = "main"
+): Promise<{ id: string }> {
+  return apiFetch(`/workspaces/${workspaceId}/repos`, {
+    method: "POST", body: JSON.stringify({ full_name: fullName, default_branch: defaultBranch }),
+  });
+}
 
-export const createMiroDiagram = (token: string, scanId: string) =>
-  apiFetch(
-    "/miro/diagram",
-    {
-      method: "POST",
-      body: JSON.stringify({ scan_id: scanId }),
-    },
-    token
-  );
+// Workspace Scans
+export async function triggerWorkspaceScan(
+  workspaceId: string, repoId: string
+): Promise<{ scanId: string; status: string }> {
+  return apiFetch(`/workspaces/${workspaceId}/scans`, {
+    method: "POST", body: JSON.stringify({ repo_id: repoId }),
+  });
+}
+
+export async function getWorkspaceScan(
+  workspaceId: string, scanId: string
+): Promise<WorkspaceScan> {
+  return apiFetch(`/workspaces/${workspaceId}/scans/${scanId}`);
+}
+
+export async function listScanFindings(
+  workspaceId: string, scanId: string
+): Promise<Finding[]> {
+  return apiFetch(`/workspaces/${workspaceId}/scans/${scanId}/findings`);
+}
+
+export async function listScanPlans(
+  workspaceId: string, scanId: string
+): Promise<FixPlan[]> {
+  return apiFetch(`/workspaces/${workspaceId}/scans/${scanId}/plans`);
+}
+
+export async function approvePlan(
+  workspaceId: string, scanId: string, planId: string
+): Promise<{ planId: string; approved: boolean }> {
+  return apiFetch(`/workspaces/${workspaceId}/scans/${scanId}/plans/${planId}/approve`, { method: "POST" });
+}
+
+// Documents
+export async function listDocuments(workspaceId: string): Promise<WorkspaceDocument[]> {
+  return apiFetch(`/workspaces/${workspaceId}/documents`);
+}
+
+export async function deleteDocument(workspaceId: string, documentId: string): Promise<void> {
+  return apiFetch(`/workspaces/${workspaceId}/documents/${documentId}`, { method: "DELETE" });
+}

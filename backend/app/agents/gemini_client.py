@@ -16,7 +16,14 @@ def invoke(system_prompt: str, user_content: str, expect_json: bool = True):
         system_instruction=system_prompt,
     )
     response = model.generate_content(user_content)
-    text = response.text.strip()
+    try:
+        text = response.text.strip()
+    except ValueError:
+        # response.text throws when the response has no valid Part
+        # (e.g. safety filter, empty response, finish_reason without content)
+        if expect_json:
+            return []
+        return ""
 
     if expect_json:
         # Strip markdown code fences if present
@@ -38,5 +45,9 @@ def invoke_streaming(system_prompt: str, user_content: str):
     )
     response = model.generate_content(user_content, stream=True)
     for chunk in response:
-        if chunk.text:
-            yield chunk.text
+        try:
+            if chunk.text:
+                yield chunk.text
+        except ValueError:
+            # Skip chunks with no valid text Part
+            pass

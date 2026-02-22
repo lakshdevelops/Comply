@@ -47,3 +47,36 @@ def run_code_generator(file_path: str, original_content: str, plans: list[dict])
     )
 
     return corrected
+
+
+def run_code_generator_streaming(file_path: str, original_content: str, plans: list[dict]):
+    """
+    Generator that yields SSE-compatible event dicts as it generates fixes.
+    """
+    from app.agents.gemini_client import invoke_streaming
+
+    plans_json = json.dumps(plans, indent=2)
+    user_content = (
+        f"FILE: {file_path}\n\n"
+        f"ORIGINAL CONTENT:\n{original_content}\n\n"
+        f"APPROVED REMEDIATION PLANS:\n{plans_json}"
+    )
+
+    yield {
+        "event": "reasoning_chunk",
+        "data": {"agent": "Code Generator", "chunk": f"Applying {len(plans)} remediation plan(s) to {file_path}...\n"}
+    }
+
+    full_response = ""
+    for chunk in invoke_streaming(system_prompt=CODE_GENERATOR_SYSTEM_PROMPT, user_content=user_content):
+        full_response += chunk
+
+    yield {
+        "event": "reasoning_chunk",
+        "data": {"agent": "Code Generator", "chunk": f"Fixed {file_path}\n"}
+    }
+
+    yield {
+        "event": "file_fixed",
+        "data": {"agent": "Code Generator", "file": file_path, "fixed_content": full_response}
+    }

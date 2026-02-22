@@ -90,6 +90,16 @@ def github_status(user: dict = Depends(get_current_user)):
     return {"connected": False}
 
 
+@router.delete("/disconnect")
+def github_disconnect(user: dict = Depends(get_current_user)):
+    """Remove the stored GitHub token for the authenticated user."""
+    db = get_db()
+    db.execute("DELETE FROM github_tokens WHERE user_id = ?", (user["uid"],))
+    db.commit()
+    db.close()
+    return {"detail": "GitHub disconnected"}
+
+
 @router.get("/repos")
 def list_repos(user: dict = Depends(get_current_user)):
     """List GitHub repos for the connected account."""

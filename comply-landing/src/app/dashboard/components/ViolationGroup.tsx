@@ -33,6 +33,7 @@ interface ViolationGroupProps {
   approvedIds: Set<string>;
   onApprove: (id: string) => void;
   onAskAbout: (violation: Violation) => void;
+  readOnly?: boolean;
 }
 
 const severityConfig = {
@@ -59,6 +60,7 @@ export default function ViolationGroup({
   approvedIds,
   onApprove,
   onAskAbout,
+  readOnly = false,
 }: ViolationGroupProps) {
   const [expanded, setExpanded] = useState(true);
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
@@ -80,9 +82,11 @@ export default function ViolationGroup({
         <span className="flex-1 text-sm font-medium text-warm-grey-900 truncate">
           {file}
         </span>
-        <span className="text-xs text-warm-grey-500">
-          {approvedCount}/{violations.length} approved
-        </span>
+        {!readOnly && (
+          <span className="text-xs text-warm-grey-500">
+            {approvedCount}/{violations.length} approved
+          </span>
+        )}
         <span className="rounded-full bg-warm-grey-200 px-2 py-0.5 text-xs font-medium text-warm-grey-700">
           {violations.length}
         </span>
@@ -108,11 +112,19 @@ export default function ViolationGroup({
                 return (
                   <div key={v.id} className="border-b border-warm-grey-100 last:border-b-0">
                     {/* Compact row */}
-                    <button
+                    <div
+                      role="button"
+                      tabIndex={0}
                       onClick={() =>
                         setExpandedRow(isExpanded ? null : v.id)
                       }
-                      className="flex w-full items-center gap-3 px-5 py-2.5 text-left hover:bg-warm-grey-100/50 transition-colors"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          setExpandedRow(isExpanded ? null : v.id);
+                        }
+                      }}
+                      className="flex w-full items-center gap-3 px-5 py-2.5 text-left hover:bg-warm-grey-100/50 transition-colors cursor-pointer"
                     >
                       <span
                         className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${config.badgeClass}`}
@@ -125,20 +137,22 @@ export default function ViolationGroup({
                       <span className="flex-1 text-sm text-warm-grey-700 truncate">
                         {v.description}
                       </span>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onApprove(v.id);
-                        }}
-                        className={`flex-shrink-0 rounded-lg p-1 transition-colors ${
-                          isApproved
-                            ? "text-warm-brown-500"
-                            : "text-warm-grey-300 hover:text-warm-grey-500"
-                        }`}
-                      >
-                        <CheckCircle2 className="h-4 w-4" />
-                      </button>
-                    </button>
+                      {!readOnly && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onApprove(v.id);
+                          }}
+                          className={`flex-shrink-0 rounded-lg p-1 transition-colors ${
+                            isApproved
+                              ? "text-warm-brown-500"
+                              : "text-warm-grey-300 hover:text-warm-grey-500"
+                          }`}
+                        >
+                          <CheckCircle2 className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
 
                     {/* Expanded detail */}
                     <AnimatePresence>
@@ -225,15 +239,17 @@ export default function ViolationGroup({
                               </div>
                             )}
 
-                            <div className="flex items-center gap-2 pt-1">
-                              <button
-                                onClick={() => onAskAbout(v)}
-                                className="flex items-center gap-1.5 rounded-lg border border-warm-grey-300 bg-warm-grey-100 px-3 py-1.5 text-xs font-medium text-warm-grey-700 hover:bg-warm-grey-200 transition-colors"
-                              >
-                                <MessageSquare className="h-3 w-3" />
-                                Ask about this
-                              </button>
-                            </div>
+                            {!readOnly && (
+                              <div className="flex items-center gap-2 pt-1">
+                                <button
+                                  onClick={() => onAskAbout(v)}
+                                  className="flex items-center gap-1.5 rounded-lg border border-warm-grey-300 bg-warm-grey-100 px-3 py-1.5 text-xs font-medium text-warm-grey-700 hover:bg-warm-grey-200 transition-colors"
+                                >
+                                  <MessageSquare className="h-3 w-3" />
+                                  Ask about this
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </motion.div>
                       )}

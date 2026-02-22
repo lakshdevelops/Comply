@@ -14,7 +14,7 @@ export default function DashboardLayout({
     <AuthGuard>
       <div className="min-h-screen bg-warm-white">
         <TopNav />
-        <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
+        <main className="mx-auto max-w-screen-2xl px-4 py-8 sm:px-6 lg:px-8">
           {children}
         </main>
       </div>
@@ -27,7 +27,7 @@ function TopNav() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-warm-grey-200 bg-warm-white/80 backdrop-blur-md">
-      <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
+      <div className="mx-auto flex max-w-screen-2xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
         {/* Logo */}
         <Link href="/" className="font-display text-xl font-semibold text-warm-grey-900">
           Comply

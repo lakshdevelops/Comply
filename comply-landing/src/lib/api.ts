@@ -84,6 +84,9 @@ export const createPRs = (token: string, scanId: string) =>
     token
   );
 
+export const getPRStreamUrl = (token: string, scanId: string) =>
+  `${API_BASE}/fixes/create-prs/stream?scan_id=${encodeURIComponent(scanId)}&token=${encodeURIComponent(token)}`;
+
 // Legal
 export const explainRegulation = (token: string, regulationRef: string) =>
   apiFetch(

@@ -15,6 +15,7 @@ import {
   getGitHubStatus,
   getGitHubRepos,
   getGitHubAuthorizeUrl,
+  disconnectGitHub,
   triggerScan,
 } from "@/lib/api";
 
@@ -71,6 +72,20 @@ export default function RepoConnect() {
     const token = await getIdToken();
     if (!token) return;
     window.location.href = getGitHubAuthorizeUrl(token);
+  };
+
+  const handleDisconnect = async () => {
+    const token = await getIdToken();
+    if (!token) return;
+    try {
+      await disconnectGitHub(token);
+      setUsername("");
+      setRepos([]);
+      setSelectedRepo("");
+      setState("disconnected");
+    } catch {
+      // silently handle
+    }
   };
 
   const handleScan = async () => {
@@ -136,6 +151,12 @@ export default function RepoConnect() {
                 <CheckCircle2 className="h-3.5 w-3.5" />
                 Connected as @{username}
               </span>
+              <button
+                onClick={handleDisconnect}
+                className="text-xs text-warm-grey-400 hover:text-red-500 transition-colors"
+              >
+                Disconnect
+              </button>
             </div>
 
             {/* Repo selector */}

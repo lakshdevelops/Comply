@@ -224,3 +224,133 @@ export async function listDocuments(workspaceId: string): Promise<WorkspaceDocum
 export async function deleteDocument(workspaceId: string, documentId: string): Promise<void> {
   return apiFetch(`/workspaces/${workspaceId}/documents/${documentId}`, { method: "DELETE" });
 }
+
+// ── Legacy API functions (used by existing scan/dashboard pages) ──────────
+
+async function legacyApiFetch(path: string, options: RequestInit = {}, token: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+      ...options.headers,
+    },
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({ detail: "Request failed" }));
+    throw new Error(error.detail || `API error: ${res.status}`);
+  }
+  return res.json();
+}
+
+// GitHub (legacy)
+export const getGitHubStatus = (token: string) =>
+  legacyApiFetch("/github/status", {}, token);
+
+export const getGitHubRepos = (token: string) =>
+  legacyApiFetch("/github/repos", {}, token);
+
+export const getGitHubAuthorizeUrl = (token: string) =>
+  `${API_BASE}/github/authorize?token=${encodeURIComponent(token)}`;
+
+export const disconnectGitHub = (token: string) =>
+  legacyApiFetch("/github/disconnect", { method: "DELETE" }, token);
+
+// Scans (legacy)
+export const triggerScan = (token: string, repoOwner: string, repoName: string) =>
+  legacyApiFetch(
+    "/scan",
+    { method: "POST", body: JSON.stringify({ repo_owner: repoOwner, repo_name: repoName }) },
+    token
+  );
+
+export const getScans = (token: string) => legacyApiFetch("/scans", {}, token);
+
+export const getScan = (token: string, scanId: string) =>
+  legacyApiFetch(`/scans/${scanId}`, {}, token);
+
+export const deleteScan = (token: string, scanId: string) =>
+  legacyApiFetch(`/scans/${scanId}`, { method: "DELETE" }, token);
+
+export const getScanStreamUrl = (token: string, scanId: string) =>
+  `${API_BASE}/scan/${scanId}/stream?token=${encodeURIComponent(token)}`;
+
+// Fixes (legacy)
+export const approveFixes = (token: string, scanId: string, violationIds: string[]) =>
+  legacyApiFetch(
+    "/fixes/approve",
+    { method: "POST", body: JSON.stringify({ scan_id: scanId, violation_ids: violationIds }) },
+    token
+  );
+
+export const createPRs = (token: string, scanId: string) =>
+  legacyApiFetch(
+    "/fixes/create-prs",
+    { method: "POST", body: JSON.stringify({ scan_id: scanId }) },
+    token
+  );
+
+export const getPRStreamUrl = (token: string, scanId: string) =>
+  `${API_BASE}/fixes/create-prs/stream?scan_id=${encodeURIComponent(scanId)}&token=${encodeURIComponent(token)}`;
+
+// Legal (legacy)
+export const explainRegulation = (token: string, regulationRef: string) =>
+  legacyApiFetch(
+    "/legal/explain",
+    { method: "POST", body: JSON.stringify({ regulation_ref: regulationRef }) },
+    token
+  );
+
+// Chat (legacy)
+export const getChatHistory = (token: string, scanId: string) =>
+  legacyApiFetch(`/chat/${scanId}`, {}, token);
+
+export const getChatStreamUrl = (token: string, scanId: string, question: string) =>
+  `${API_BASE}/chat/${scanId}/stream?token=${encodeURIComponent(token)}&question=${encodeURIComponent(question)}`;
+
+// Billing (legacy)
+export const getSubscription = (token: string) =>
+  legacyApiFetch("/billing/subscription", {}, token);
+
+export const createSubscription = (token: string, plan: string, billingInterval: string) =>
+  legacyApiFetch(
+    "/billing/create-subscription",
+    { method: "POST", body: JSON.stringify({ plan, billing_interval: billingInterval }) },
+    token
+  );
+
+export const cancelSubscription = (token: string) =>
+  legacyApiFetch("/billing/cancel", { method: "POST" }, token);
+
+export const getUsageSummary = (token: string) =>
+  legacyApiFetch("/billing/usage", {}, token);
+
+export const submitEnterpriseContact = (name: string, email: string, company: string, message: string) =>
+  fetch(`${API_BASE}/billing/enterprise-contact`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, email, company, message }),
+  }).then((r) => {
+    if (!r.ok) throw new Error("Request failed");
+    return r.json();
+  });
+
+export const getStripeConfig = () =>
+  fetch(`${API_BASE}/billing/config`).then((r) => {
+    if (!r.ok) throw new Error("Failed to load Stripe config");
+    return r.json();
+  });
+
+// Miro (legacy)
+export const getMiroStatus = (token: string) =>
+  legacyApiFetch("/miro/status", {}, token);
+
+export const getMiroAuthorizeUrl = (token: string) =>
+  `${API_BASE}/miro/authorize?token=${encodeURIComponent(token)}`;
+
+export const createMiroDiagram = (token: string, scanId: string) =>
+  legacyApiFetch(
+    "/miro/diagram",
+    { method: "POST", body: JSON.stringify({ scan_id: scanId }) },
+    token
+  );

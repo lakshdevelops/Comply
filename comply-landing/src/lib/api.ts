@@ -88,3 +88,48 @@ export const explainRegulation = (token: string, regulationRef: string) =>
     },
     token
   );
+
+// Billing
+export const getSubscription = (token: string) =>
+  apiFetch("/billing/subscription", {}, token);
+
+export const createSubscription = (
+  token: string,
+  plan: string,
+  billingInterval: string
+) =>
+  apiFetch(
+    "/billing/create-subscription",
+    {
+      method: "POST",
+      body: JSON.stringify({ plan, billing_interval: billingInterval }),
+    },
+    token
+  );
+
+export const cancelSubscription = (token: string) =>
+  apiFetch("/billing/cancel", { method: "POST" }, token);
+
+export const getUsageSummary = (token: string) =>
+  apiFetch("/billing/usage", {}, token);
+
+export const submitEnterpriseContact = (
+  name: string,
+  email: string,
+  company: string,
+  message: string
+) =>
+  fetch(`${API_BASE}/billing/enterprise-contact`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, email, company, message }),
+  }).then((r) => {
+    if (!r.ok) throw new Error("Request failed");
+    return r.json();
+  });
+
+export const getStripeConfig = () =>
+  fetch(`${API_BASE}/billing/config`).then((r) => {
+    if (!r.ok) throw new Error("Failed to load Stripe config");
+    return r.json();
+  });

@@ -6,6 +6,7 @@ import { motion } from "motion/react";
 import { ArrowLeft, CheckCircle2, AlertTriangle, XCircle } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePlan } from "@/contexts/PlanContext";
 import { getScan, approveFixes, createPRs } from "@/lib/api";
 import ViolationCard from "../../components/ViolationCard";
 import ScanProgress from "../../components/ScanProgress";
@@ -42,6 +43,7 @@ export default function ScanResultPage() {
   const params = useParams();
   const scanId = params.id as string;
   const { getIdToken } = useAuth();
+  const { hasFeature } = usePlan();
 
   const [scan, setScan] = useState<ScanData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -236,13 +238,22 @@ export default function ScanResultPage() {
               >
                 Approve All
               </button>
-              <button
-                onClick={handleCreatePRs}
-                disabled={approvedIds.size === 0 || prLoading}
-                className="rounded-xl bg-warm-brown-500 px-4 py-2 text-sm font-medium text-white hover:bg-warm-brown-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {prLoading ? "Creating PRs..." : "Create PRs"}
-              </button>
+              {hasFeature("auto_pr") ? (
+                <button
+                  onClick={handleCreatePRs}
+                  disabled={approvedIds.size === 0 || prLoading}
+                  className="rounded-xl bg-warm-brown-500 px-4 py-2 text-sm font-medium text-white hover:bg-warm-brown-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {prLoading ? "Creating PRs..." : "Create PRs"}
+                </button>
+              ) : (
+                <a
+                  href="/pricing"
+                  className="rounded-xl border border-warm-brown-200 bg-warm-brown-50/40 px-4 py-2 text-sm font-medium text-warm-brown-700 hover:bg-warm-brown-100 transition-colors"
+                >
+                  Create PRs <span className="text-[10px] ml-1 uppercase tracking-wider text-warm-brown-500">Pro</span>
+                </a>
+              )}
             </div>
           </div>
 

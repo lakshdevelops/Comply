@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from app.api.deps import get_current_user
+from app.api.plan_guard import require_feature
 from app.database import get_db
 from app.models.schemas import ApproveRequest, CreatePRsRequest
 from app.services.github_service import get_repo_infra_files, create_pr
@@ -44,7 +45,11 @@ def approve_fixes(req: ApproveRequest, user: dict = Depends(get_current_user)):
 
 
 @router.post("/fixes/create-prs")
-def create_prs(req: CreatePRsRequest, user: dict = Depends(get_current_user)):
+def create_prs(
+    req: CreatePRsRequest,
+    user: dict = Depends(get_current_user),
+    _auto_pr=Depends(require_feature("auto_pr")),
+):
     """Run PR pipeline for approved fixes and create GitHub PRs."""
     user_id = user["uid"]
     db = get_db()

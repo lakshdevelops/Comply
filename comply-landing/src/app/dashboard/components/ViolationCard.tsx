@@ -11,6 +11,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePlan } from "@/contexts/PlanContext";
 import { explainRegulation } from "@/lib/api";
 
 interface Violation {
@@ -61,6 +62,7 @@ export default function ViolationCard({
   onApprove,
 }: ViolationCardProps) {
   const { getIdToken } = useAuth();
+  const { hasFeature } = usePlan();
   const [showFix, setShowFix] = useState(false);
   const [showExplanation, setShowExplanation] = useState(false);
   const [explanation, setExplanation] = useState<string | null>(null);
@@ -193,18 +195,29 @@ export default function ViolationCard({
 
       {/* Actions */}
       <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-warm-grey-200 pt-4">
-        <button
-          onClick={handleExplain}
-          className="flex items-center gap-1.5 rounded-xl border border-warm-grey-300 bg-warm-grey-100 px-3 py-1.5 text-xs font-medium text-warm-grey-900 hover:bg-warm-grey-200 transition-colors"
-        >
-          <BookOpen className="h-3.5 w-3.5" />
-          Explain Regulation
-          <ChevronDown
-            className={`h-3 w-3 transition-transform ${
-              showExplanation ? "rotate-180" : ""
-            }`}
-          />
-        </button>
+        {hasFeature("legal_agent") ? (
+          <button
+            onClick={handleExplain}
+            className="flex items-center gap-1.5 rounded-xl border border-warm-grey-300 bg-warm-grey-100 px-3 py-1.5 text-xs font-medium text-warm-grey-900 hover:bg-warm-grey-200 transition-colors"
+          >
+            <BookOpen className="h-3.5 w-3.5" />
+            Explain Regulation
+            <ChevronDown
+              className={`h-3 w-3 transition-transform ${
+                showExplanation ? "rotate-180" : ""
+              }`}
+            />
+          </button>
+        ) : (
+          <a
+            href="/pricing"
+            className="flex items-center gap-1.5 rounded-xl border border-warm-brown-200 bg-warm-brown-50/40 px-3 py-1.5 text-xs font-medium text-warm-brown-700 hover:bg-warm-brown-100 transition-colors"
+          >
+            <BookOpen className="h-3.5 w-3.5" />
+            Explain Regulation
+            <span className="ml-1 text-[10px] uppercase tracking-wider text-warm-brown-500">Enterprise</span>
+          </a>
+        )}
         <button
           onClick={() => setShowFix(!showFix)}
           className="flex items-center gap-1.5 rounded-xl border border-warm-grey-300 bg-warm-grey-100 px-3 py-1.5 text-xs font-medium text-warm-grey-900 hover:bg-warm-grey-200 transition-colors"

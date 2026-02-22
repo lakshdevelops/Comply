@@ -22,10 +22,13 @@ def trigger_scan(req: ScanRequest, user: dict = Depends(get_current_user)):
 
     # Verify GitHub connected
     db = get_db()
-    row = db.execute(
-        "SELECT access_token FROM github_tokens WHERE user_id = ?", (user_id,)
-    ).fetchone()
-    db.close()
+    try:
+        row = db.execute(
+            "SELECT access_token FROM github_tokens WHERE user_id = ?", (user_id,)
+        ).fetchone()
+    finally:
+        db.close()
+
     if not row:
         raise HTTPException(status_code=400, detail="GitHub not connected.")
 
@@ -124,7 +127,6 @@ def stream_scan(scan_id: str, token: str = Query(...)):
             db = get_db()
             for v in violations:
                 vid = str(uuid.uuid4())
-                original_vid = v.get("violation_id", "")
                 v["db_id"] = vid  # Track the DB ID for plan linking
                 db.execute(
                     "INSERT INTO violations (id, scan_id, rule_id, severity, file, line, resource, field, current_value, description, regulation_ref) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
@@ -217,15 +219,25 @@ def list_scans(user: dict = Depends(get_current_user)):
     """List all scans for the authenticated user."""
     user_id = user["uid"]
     db = get_db()
-    rows = db.execute(
-        "SELECT id, repo_url, repo_owner, repo_name, status, created_at, updated_at FROM scans WHERE user_id = ? ORDER BY created_at DESC",
-        (user_id,),
-    ).fetchall()
-    db.close()
+    try:
+        rows = db.execute(
+            """
+            SELECT s.id, s.repo_url, s.repo_owner, s.repo_name, s.status,
+                   s.created_at, s.updated_at,
+                   COUNT(v.id) as violation_count
+            FROM scans s
+            LEFT JOIN violations v ON v.scan_id = s.id
+            WHERE s.user_id = ?
+            GROUP BY s.id
+            ORDER BY s.created_at DESC
+            """,
+            (user_id,),
+        ).fetchall()
+    finally:
+        db.close()
 
     scans = []
     for row in rows:
-        # Get violation count
         db2 = get_db()
         count = db2.execute(
             "SELECT COUNT(*) as cnt FROM violations WHERE scan_id = ?", (row["id"],)
@@ -252,41 +264,40 @@ def get_scan(scan_id: str, user: dict = Depends(get_current_user)):
     """Get full scan details including violations, plans, and reasoning log."""
     user_id = user["uid"]
     db = get_db()
+    try:
+        scan = db.execute(
+            "SELECT * FROM scans WHERE id = ? AND user_id = ?", (scan_id, user_id)
+        ).fetchone()
+        if not scan:
+            raise HTTPException(status_code=404, detail="Scan not found")
 
-    scan = db.execute(
-        "SELECT * FROM scans WHERE id = ? AND user_id = ?", (scan_id, user_id)
-    ).fetchone()
-    if not scan:
+        violations = [
+            dict(row)
+            for row in db.execute(
+                "SELECT * FROM violations WHERE scan_id = ?", (scan_id,)
+            ).fetchall()
+        ]
+        plans = [
+            dict(row)
+            for row in db.execute(
+                "SELECT * FROM remediation_plans WHERE scan_id = ?", (scan_id,)
+            ).fetchall()
+        ]
+        reasoning = [
+            dict(row)
+            for row in db.execute(
+                "SELECT * FROM reasoning_log WHERE scan_id = ? ORDER BY created_at",
+                (scan_id,),
+            ).fetchall()
+        ]
+        prs = [
+            dict(row)
+            for row in db.execute(
+                "SELECT * FROM pull_requests WHERE scan_id = ?", (scan_id,)
+            ).fetchall()
+        ]
+    finally:
         db.close()
-        raise HTTPException(status_code=404, detail="Scan not found")
-
-    violations = [
-        dict(row)
-        for row in db.execute(
-            "SELECT * FROM violations WHERE scan_id = ?", (scan_id,)
-        ).fetchall()
-    ]
-    plans = [
-        dict(row)
-        for row in db.execute(
-            "SELECT * FROM remediation_plans WHERE scan_id = ?", (scan_id,)
-        ).fetchall()
-    ]
-    reasoning = [
-        dict(row)
-        for row in db.execute(
-            "SELECT * FROM reasoning_log WHERE scan_id = ? ORDER BY created_at",
-            (scan_id,),
-        ).fetchall()
-    ]
-    prs = [
-        dict(row)
-        for row in db.execute(
-            "SELECT * FROM pull_requests WHERE scan_id = ?", (scan_id,)
-        ).fetchall()
-    ]
-
-    db.close()
 
     return {
         "scan_id": scan["id"],

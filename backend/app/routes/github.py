@@ -58,18 +58,20 @@ def github_callback(code: str, state: str):
 
     # Store token in DB
     db = get_db()
-    db.execute(
-        "INSERT OR REPLACE INTO github_tokens (id, user_id, access_token, github_username, created_at) VALUES (?, ?, ?, ?, ?)",
-        (
-            str(uuid.uuid4()),
-            state,
-            access_token,
-            user_info.get("login"),
-            datetime.utcnow().isoformat(),
-        ),
-    )
-    db.commit()
-    db.close()
+    try:
+        db.execute(
+            "INSERT OR REPLACE INTO github_tokens (id, user_id, access_token, github_username, created_at) VALUES (?, ?, ?, ?, ?)",
+            (
+                str(uuid.uuid4()),
+                state,
+                access_token,
+                user_info.get("login"),
+                datetime.utcnow().isoformat(),
+            ),
+        )
+        db.commit()
+    finally:
+        db.close()
 
     # Redirect back to frontend dashboard
     return RedirectResponse(f"{settings.FRONTEND_URL}/dashboard?github=connected")
@@ -79,11 +81,13 @@ def github_callback(code: str, state: str):
 def github_status(user: dict = Depends(get_current_user)):
     """Check if user has connected their GitHub account."""
     db = get_db()
-    row = db.execute(
-        "SELECT github_username FROM github_tokens WHERE user_id = ?",
-        (user["uid"],),
-    ).fetchone()
-    db.close()
+    try:
+        row = db.execute(
+            "SELECT github_username FROM github_tokens WHERE user_id = ?",
+            (user["uid"],),
+        ).fetchone()
+    finally:
+        db.close()
 
     if row:
         return {"connected": True, "username": row["github_username"]}
@@ -104,11 +108,13 @@ def github_disconnect(user: dict = Depends(get_current_user)):
 def list_repos(user: dict = Depends(get_current_user)):
     """List GitHub repos for the connected account."""
     db = get_db()
-    row = db.execute(
-        "SELECT access_token FROM github_tokens WHERE user_id = ?",
-        (user["uid"],),
-    ).fetchone()
-    db.close()
+    try:
+        row = db.execute(
+            "SELECT access_token FROM github_tokens WHERE user_id = ?",
+            (user["uid"],),
+        ).fetchone()
+    finally:
+        db.close()
 
     if not row:
         raise HTTPException(status_code=400, detail="GitHub not connected")

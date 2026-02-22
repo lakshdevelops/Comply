@@ -153,3 +153,20 @@ export const getStripeConfig = () =>
     if (!r.ok) throw new Error("Failed to load Stripe config");
     return r.json();
   });
+
+// Miro
+export const getMiroStatus = (token: string) =>
+  apiFetch("/miro/status", {}, token);
+
+export const getMiroAuthorizeUrl = (token: string) =>
+  `${API_BASE}/miro/authorize?token=${encodeURIComponent(token)}`;
+
+export const createMiroDiagram = (token: string, scanId: string) =>
+  apiFetch(
+    "/miro/diagram",
+    {
+      method: "POST",
+      body: JSON.stringify({ scan_id: scanId }),
+    },
+    token
+  );

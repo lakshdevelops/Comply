@@ -3,6 +3,7 @@
 import { motion } from "motion/react";
 import RepoConnect from "./components/RepoConnect";
 import ScanHistory from "./components/ScanHistory";
+import MiroConnect from "./components/MiroConnect";
 
 export default function DashboardPage() {
   return (
@@ -22,7 +23,10 @@ export default function DashboardPage() {
         </p>
       </div>
 
-      <RepoConnect />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <RepoConnect />
+        <MiroConnect />
+      </div>
       <ScanHistory />
     </motion.div>
   );

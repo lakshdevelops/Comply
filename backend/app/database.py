@@ -88,6 +88,18 @@ def init_db() -> None:
     """)
 
     cursor.execute("""
+        CREATE TABLE IF NOT EXISTS chat_messages (
+            id TEXT PRIMARY KEY,
+            scan_id TEXT NOT NULL REFERENCES scans(id),
+            user_id TEXT NOT NULL,
+            role TEXT NOT NULL,
+            content TEXT NOT NULL,
+            references_json TEXT,
+            created_at TEXT NOT NULL
+        )
+    """)
+
+    cursor.execute("""
         CREATE TABLE IF NOT EXISTS pull_requests (
             id TEXT PRIMARY KEY,
             scan_id TEXT NOT NULL REFERENCES scans(id),
@@ -105,9 +117,16 @@ def init_db() -> None:
             agent TEXT NOT NULL,
             action TEXT NOT NULL,
             output TEXT NOT NULL,
+            full_text TEXT,
             created_at TEXT NOT NULL
         )
     """)
+
+    # Migration: add full_text column for existing databases
+    try:
+        cursor.execute("ALTER TABLE reasoning_log ADD COLUMN full_text TEXT")
+    except sqlite3.OperationalError:
+        pass  # Column already exists
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS github_tokens (

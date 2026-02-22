@@ -82,6 +82,8 @@ def stream_scan(scan_id: str, token: str = Query(...)):
     repo_name = scan["repo_name"]
 
     def event_generator():
+        reasoning_traces: dict[str, list[str]] = {}
+
         try:
             # Update status to scanning
             db = get_db()
@@ -94,6 +96,7 @@ def stream_scan(scan_id: str, token: str = Query(...)):
 
             # Fetch infra files
             yield format_sse("agent_start", {"agent": "Auditor", "message": "Fetching repository files..."})
+            reasoning_traces.setdefault("Auditor", []).append("Fetching repository files...\n")
             repo_files = get_repo_infra_files(access_token, repo_owner, repo_name)
 
             if not repo_files:
@@ -112,13 +115,17 @@ def stream_scan(scan_id: str, token: str = Query(...)):
             violations = []
             for event in run_auditor_streaming(repo_files):
                 yield format_sse(event["event"], event["data"])
+                if event["event"] == "reasoning_chunk":
+                    reasoning_traces.setdefault(event["data"].get("agent", "Auditor"), []).append(event["data"].get("chunk", ""))
                 if event["event"] == "agent_complete":
                     violations = event["data"].get("violations", [])
 
-            # Save violations to DB
+            # Save violations to DB with unique IDs (Gemini reuses simple IDs like V-001 across scans)
             db = get_db()
             for v in violations:
-                vid = v.get("violation_id", str(uuid.uuid4()))
+                vid = str(uuid.uuid4())
+                original_vid = v.get("violation_id", "")
+                v["db_id"] = vid  # Track the DB ID for plan linking
                 db.execute(
                     "INSERT INTO violations (id, scan_id, rule_id, severity, file, line, resource, field, current_value, description, regulation_ref) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                     (vid, scan_id, v.get("rule_id", ""), v.get("severity", "medium"), v.get("file", ""), v.get("line"), v.get("resource"), v.get("field"), v.get("current_value"), v.get("description", ""), v.get("regulation_ref", "")),
@@ -126,30 +133,59 @@ def stream_scan(scan_id: str, token: str = Query(...)):
             db.commit()
             db.close()
 
-            # Run strategist (streaming)
-            yield format_sse("agent_start", {"agent": "Strategist", "message": "Building remediation plans..."})
-            plans = []
-            for event in run_strategist_streaming(violations):
-                yield format_sse(event["event"], event["data"])
-                if event["event"] == "agent_complete":
-                    plans = event["data"].get("plans", [])
-
-            # Save plans to DB
+            # Save auditor reasoning log
+            auditor_full_text = "".join(reasoning_traces.get("Auditor", []))
             db = get_db()
-            for p in plans:
-                pid = str(uuid.uuid4())
-                db.execute(
-                    "INSERT INTO remediation_plans (id, scan_id, violation_id, explanation, regulation_citation, what_needs_to_change, sample_fix, estimated_effort, priority, file, approved) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                    (pid, scan_id, p.get("violation_id", ""), p.get("explanation", ""), p.get("regulation_citation", ""), p.get("what_needs_to_change", ""), p.get("sample_fix"), p.get("estimated_effort"), p.get("priority", "P2"), p.get("file", ""), 0),
-                )
+            db.execute(
+                "INSERT INTO reasoning_log (id, scan_id, agent, action, output, full_text, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (str(uuid.uuid4()), scan_id, "Auditor", "scan", f"{len(violations)} violations detected", auditor_full_text or None, datetime.utcnow().isoformat()),
+            )
+            db.commit()
+            db.close()
 
-            # Save reasoning log summary
-            for agent_name, summary in [("Auditor", f"{len(violations)} violations detected"), ("Strategist", f"{len(plans)} remediation plans produced")]:
-                db.execute(
-                    "INSERT INTO reasoning_log (id, scan_id, agent, action, output, created_at) VALUES (?, ?, ?, ?, ?, ?)",
-                    (str(uuid.uuid4()), scan_id, agent_name, "scan" if agent_name == "Auditor" else "plan", summary, datetime.utcnow().isoformat()),
-                )
+            # Run strategist (streaming) — isolated so auditor results are preserved on failure
+            plans = []
+            try:
+                yield format_sse("agent_start", {"agent": "Strategist", "message": "Building remediation plans..."})
+                reasoning_traces.setdefault("Strategist", []).append("Building remediation plans...\n")
+                for event in run_strategist_streaming(violations):
+                    yield format_sse(event["event"], event["data"])
+                    if event["event"] == "reasoning_chunk":
+                        reasoning_traces.setdefault(event["data"].get("agent", "Strategist"), []).append(event["data"].get("chunk", ""))
+                    if event["event"] == "agent_complete":
+                        plans = event["data"].get("plans", [])
 
+                # Save plans to DB, linking to the DB violation IDs
+                vid_map = {v.get("violation_id", ""): v.get("db_id", "") for v in violations}
+                db = get_db()
+                for p in plans:
+                    pid = str(uuid.uuid4())
+                    db_vid = vid_map.get(p.get("violation_id", ""), p.get("violation_id", ""))
+                    db.execute(
+                        "INSERT INTO remediation_plans (id, scan_id, violation_id, explanation, regulation_citation, what_needs_to_change, sample_fix, estimated_effort, priority, file, approved) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                        (pid, scan_id, db_vid, p.get("explanation", ""), p.get("regulation_citation", ""), p.get("what_needs_to_change", ""), p.get("sample_fix"), p.get("estimated_effort"), p.get("priority", "P2"), p.get("file", ""), 0),
+                    )
+                strategist_full_text = "".join(reasoning_traces.get("Strategist", []))
+                db.execute(
+                    "INSERT INTO reasoning_log (id, scan_id, agent, action, output, full_text, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    (str(uuid.uuid4()), scan_id, "Strategist", "plan", f"{len(plans)} remediation plans produced", strategist_full_text or None, datetime.utcnow().isoformat()),
+                )
+                db.commit()
+                db.close()
+
+            except Exception as strat_err:
+                yield format_sse("agent_complete", {"agent": "Strategist", "summary": f"Failed: {strat_err}"})
+                strategist_full_text = "".join(reasoning_traces.get("Strategist", []))
+                db = get_db()
+                db.execute(
+                    "INSERT INTO reasoning_log (id, scan_id, agent, action, output, full_text, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    (str(uuid.uuid4()), scan_id, "Strategist", "plan", f"Error: {strat_err}", strategist_full_text or None, datetime.utcnow().isoformat()),
+                )
+                db.commit()
+                db.close()
+
+            # Mark scan completed (violations are always preserved)
+            db = get_db()
             db.execute(
                 "UPDATE scans SET status = 'completed', updated_at = ? WHERE id = ?",
                 (datetime.utcnow().isoformat(), scan_id),
@@ -279,6 +315,7 @@ def delete_scan(scan_id: str, user: dict = Depends(get_current_user)):
         db.close()
         raise HTTPException(status_code=404, detail="Scan not found")
 
+    db.execute("DELETE FROM chat_messages WHERE scan_id = ?", (scan_id,))
     db.execute("DELETE FROM reasoning_log WHERE scan_id = ?", (scan_id,))
     db.execute("DELETE FROM pull_requests WHERE scan_id = ?", (scan_id,))
     db.execute("DELETE FROM qa_results WHERE scan_id = ?", (scan_id,))

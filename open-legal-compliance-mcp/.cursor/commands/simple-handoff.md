@@ -1,0 +1,1 @@
+this task will be handed off to another ai agent. provide details of the current state and that task the ai agent should be focusing on now. do not provide any of your recommendations, just the core facts.

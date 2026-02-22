@@ -1,0 +1,35 @@
+{
+  "name": "open-legal-compliance-mcp",
+  "version": "1.0.0",
+  "description": "Legal Compliance Model Context Protocol Server - Free/Open Government APIs",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsc --watch & node --watch dist/index.js"
+  },
+  "keywords": [
+    "mcp",
+    "legal",
+    "compliance",
+    "government-api"
+  ],
+  "author": "TCoder920",
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "axios": "^1.7.7",
+    "cheerio": "^1.0.0",
+    "dotenv": "^16.4.5",
+    "pdf-parse": "^1.1.1",
+    "playwright": "^1.57.0",
+    "turndown": "^7.1.3"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/pdf-parse": "^1.1.5",
+    "@types/turndown": "^5.0.6",
+    "typescript": "^5.5.0"
+  }
+}

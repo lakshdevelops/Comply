@@ -1,0 +1,17 @@
+{
+    "mcpServers": {
+        "legal-compliance-mcp": {
+            "command": "node",
+            "args": [
+                "/path/to/your/project/dist/index.js"
+            ],
+            "env": {
+                "GOVINFO_API_KEY": "your_govinfo_key_here",
+                "COURTLISTENER_API_KEY": "your_courtlistener_key_here",
+                "CONGRESS_GOV_API_KEY": "your_congress_key_here",
+                "OPEN_STATES_API_KEY": "your_openstates_key_here",
+                "CANLII_API_KEY": "your_canlii_key_here"
+            }
+        }
+    }
+}

@@ -1,0 +1,91 @@
+---
+alwaysApply: true
+---
+
+# Cursor Rules
+
+# Core focus
+- Create a personalized version of n8n that more aligns with our needs and purpose. The user will be guiding you on what is required.
+- Provide comprehensive legal compliance analysis using the legal-compliance-mcp server to analyze applications against "Source of Truth" legal databases. 
+
+## Environment
+- Operating System: macOS (darwin)
+- Architecture: arm64 (Apple Silicon)
+
+## Communication Style
+- Be direct and professional in all responses. Expand acronyms used at the instance presented.
+- Prioritize truth and accuracy over politeness or feelings
+- Avoid unnecessary pleasantries or hedging
+- State facts clearly without sugar-coating
+
+## Task Execution
+- Be proactive in problem-solving
+- Attempt every viable method to complete tasks
+- Don't give up after the first approach fails
+- Explore multiple solutions before reporting limitations
+- Take initiative to gather necessary information rather than asking the user
+- Whenever you encounter an issue always resolve the root cause before moving forward
+- Never create or delete an n8n workflow without explicit user consent, and do not create additional workflows unless the user clearly requests a new one (address concerns on the existing workflow first)
+- never run global searches
+- when removing restrictions do not add comments on what the previous state was. remove the restriction in its entirety.
+
+## Working Directory Restrictions
+- ALL operations MUST be restricted to the working directory: `/Users/midnight/Documents/n8n-restructure`
+- NEVER operate on files, directories, or execute commands outside of this directory without explicit user permission
+- This restriction applies to ALL workspace folders - do not operate in `/Users/midnight/Local stuff/misc/pkg` or any other directory outside `/Users/midnight/Documents/n8n-restructure` without explicit permission
+- This includes: file operations (read, write, delete, create), terminal commands that change directories, git operations on other repositories, package installations that affect system directories, or any operations that would modify files outside the working directory
+- If a task requires operations outside the working directory, you MUST ask for explicit permission first
+- The only exception is reading system documentation or configuration files when necessary for understanding the environment, but even then, do not modify anything outside the working directory
+
+## Automatic Execution (YOLO Mode)
+- Execute MCP server commands automatically without prompting
+- Only ask for confirmation if a command is in the deny list or if the outcome is uncertain
+- Proceed with operations that are clearly safe and necessary for task completion
+
+## Command Deny List
+The following commands and patterns are BLOCKED and must NEVER be executed automatically:
+- `rm -rf /` or any recursive deletion of root directory
+- `rm -rf ~` or deletion of home directory
+- `rm -rf /*` or any wildcard deletion of root filesystem
+- `format`, `mkfs`, `fdisk`, `dd` with destructive operations (disk formatting/partitioning)
+- `sudo rm -rf` operations on system directories (/usr, /bin, /sbin, /etc, /var, /opt, /System, /Library)
+- `chmod -R 000` or `chmod -R 777` on system directories
+- `sudo passwd` or password modification commands
+- `sudo userdel` or user deletion commands
+- `sudo systemctl disable` or disabling critical system services
+- `sudo apt-get remove --purge` or `brew uninstall` of critical system packages
+- Network commands that could expose the system: `nc -l`, `python -m http.server` on public interfaces
+- Commands that modify system-wide PATH or environment variables in system files
+- `sudo` operations on files in /etc, /usr, /bin, /sbin, /System, /Library without explicit user request
+- Database drop operations: `DROP DATABASE`, `DROP TABLE` without explicit user request
+- Git operations that force push to main/master: `git push --force origin main/master`
+- Commands that delete `.git` directory or repository history
+- Commands that modify or delete system certificates or keychains
+- Commands that disable security features (firewall, antivirus, etc.)
+- Commands that install packages from untrusted sources or modify package managers
+- Commands that modify system boot configuration or kernel parameters
+- Any command that could result in data loss or system instability without explicit user approval
+
+## Legal Compliance Analysis
+- Use the legal-compliance-mcp server proactively when analyzing applications, features, or data handling practices for compliance risks
+- Available tools via legal-compliance-mcp:
+  - `search_us_federal_code`: Search US Federal Code (USC) and Code of Federal Regulations (CFR) via GovInfo API
+  - `search_case_law`: Search case law and legal precedents via CourtListener (Free Law Project)
+  - `check_eu_regulation`: Search EU regulations (GDPR, AI Act, MiCA) via EUR-Lex Web Service
+  - `scrape_state_code_specific`: Scrape state codes for high-risk states (CA/CCPA, NY/Financial, IL/BIPA)
+- When to use legal compliance tools:
+  - Analyzing data privacy practices (check GDPR, CCPA, state privacy laws)
+  - Reviewing AI/ML implementations (check AI Act compliance)
+  - Evaluating financial services features (check NY financial regulations)
+  - Assessing biometric data handling (check BIPA/Illinois requirements)
+  - Reviewing copyright/intellectual property implementations (check Title 17 USC)
+  - Any feature that handles personal data, financial information, or regulated content
+- Always use FREE/OPEN government APIs only - never suggest commercial legal aggregators
+- Present legal findings clearly with citations, relevant sections, and actionable compliance recommendations
+- If state scrapers fail (website structure changes), clearly indicate manual verification is required
+
+## Code Quality
+- Write clean, efficient, and maintainable code
+- Follow best practices for the specific technology stack
+- Ensure code works correctly before considering it complete
+- Fix errors and issues immediately when discovered

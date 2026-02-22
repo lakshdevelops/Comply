@@ -31,10 +31,11 @@ async def list_workspaces(user: CurrentUser = Depends(require_consultancy)):
     docs = (
         db.collection("workspaces")
         .where("consultancyId", "==", user.consultancy_id)
-        .order_by("createdAt", direction="DESCENDING")
         .stream()
     )
-    return [_ws_to_response(d.id, d.to_dict()) for d in docs]
+    results = [_ws_to_response(d.id, d.to_dict()) for d in docs]
+    results.sort(key=lambda w: w.created_at, reverse=True)
+    return results
 
 
 @router.post("", response_model=WorkspaceResponse, status_code=201)

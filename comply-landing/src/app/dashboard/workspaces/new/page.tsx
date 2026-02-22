@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
-import { createWorkspace } from "@/lib/api";
+import { createWorkspace, createConsultancy } from "@/lib/api";
+import { useAuth } from "@/contexts/AuthContext";
 import type { ComplianceFramework, CloudProvider, InfrastructureType } from "@/types/comply";
 
 const FRAMEWORKS: ComplianceFramework[] = ["GDPR", "DORA", "ISO27001", "SOC2", "HIPAA", "PCI-DSS"];
@@ -12,6 +13,7 @@ const INFRA_TYPES: InfrastructureType[] = ["Terraform", "Kubernetes", "CloudForm
 
 export default function NewWorkspacePage() {
   const router = useRouter();
+  const { user } = useAuth();
   const [clientName, setClientName] = useState("");
   const [clientIndustry, setClientIndustry] = useState("");
   const [frameworks, setFrameworks] = useState<ComplianceFramework[]>([]);
@@ -33,14 +35,35 @@ export default function NewWorkspacePage() {
     setSubmitting(true);
     setError("");
     try {
-      const ws = await createWorkspace({
-        client_name: clientName,
-        client_industry: clientIndustry,
-        compliance_frameworks: frameworks,
-        cloud_provider: cloud,
-        infrastructure_type: infra,
-      });
-      router.push(`/dashboard/workspaces/${ws.id}`);
+      // Auto-create consultancy if user doesn't have one yet
+      try {
+        await createWorkspace({
+          client_name: clientName,
+          client_industry: clientIndustry,
+          compliance_frameworks: frameworks,
+          cloud_provider: cloud,
+          infrastructure_type: infra,
+        }).then((ws) => {
+          router.push(`/dashboard/workspaces/${ws.id}`);
+          return;
+        });
+      } catch (firstErr: any) {
+        if (firstErr.message?.includes("consultancy")) {
+          // Create a default consultancy, then retry
+          const displayName = user?.displayName || user?.email || "My Organization";
+          await createConsultancy(`${displayName}'s Organization`);
+          const ws = await createWorkspace({
+            client_name: clientName,
+            client_industry: clientIndustry,
+            compliance_frameworks: frameworks,
+            cloud_provider: cloud,
+            infrastructure_type: infra,
+          });
+          router.push(`/dashboard/workspaces/${ws.id}`);
+        } else {
+          throw firstErr;
+        }
+      }
     } catch (e: any) {
       setError(e.message);
       setSubmitting(false);

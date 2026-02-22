@@ -198,10 +198,11 @@ export default function ScanResultPage() {
           const prAgents = log.filter((l: { agent: string }) =>
             ["Code Generator", "QA Re-scan", "Strategist (Replan)"].includes(l.agent)
           );
-          for (const entry of prAgents) {
+          for (let pi = 0; pi < prAgents.length; pi++) {
+            const entry = prAgents[pi];
             timeline.push({
               type: "agent",
-              id: `pr-${entry.agent}`,
+              id: entry.id || `pr-${entry.agent}-${pi}`,
               agent: entry.agent,
               status: "done",
               summary: entry.output,
@@ -209,12 +210,13 @@ export default function ScanResultPage() {
             });
           }
 
-          if (data.pr_urls && data.pr_urls.length > 0) {
+          if (data.pull_requests && data.pull_requests.length > 0) {
+            const pr = data.pull_requests[0];
             timeline.push({
               type: "pr_status",
-              prUrl: data.pr_urls[0],
-              branch: "comply-fix",
-              violationCount: viols.length,
+              prUrl: pr.pr_url,
+              branch: pr.branch_name || "comply-fix",
+              violationCount: pr.violation_count || viols.length,
               qaIterations: 1,
             });
           }

@@ -250,6 +250,7 @@ def stream_create_prs(scan_id: str = Query(...), token: str = Query(...)):
 
     def event_generator():
         reasoning_traces: dict[str, list[str]] = {}
+        agent_summaries: dict[str, str] = {}
         current_files = dict(repo_files)
         current_plans = list(approved_plans)
         all_fixes: dict[str, dict] = {}
@@ -287,6 +288,7 @@ def stream_create_prs(scan_id: str = Query(...), token: str = Query(...)):
                                 }
                             files_fixed += 1
 
+                agent_summaries["Code Generator"] = f"{files_fixed} files modified"
                 yield format_sse("agent_complete", {"agent": "Code Generator", "summary": f"{files_fixed} files modified"})
 
                 # --- QA Re-scan ---
@@ -303,9 +305,11 @@ def stream_create_prs(scan_id: str = Query(...), token: str = Query(...)):
                 })
 
                 if is_clean:
+                    agent_summaries["QA Re-scan"] = "CLEAN — no new violations"
                     yield format_sse("agent_complete", {"agent": "QA Re-scan", "summary": "CLEAN — no new violations"})
                     break
                 else:
+                    agent_summaries["QA Re-scan"] = f"{len(new_violations)} new violations found"
                     yield format_sse("agent_complete", {"agent": "QA Re-scan", "summary": f"{len(new_violations)} new violations found"})
                     # Send QA violations so the frontend can display them
                     yield format_sse("qa_violations", {"violations": new_violations, "iteration": iteration + 1})
@@ -333,6 +337,7 @@ def stream_create_prs(scan_id: str = Query(...), token: str = Query(...)):
                     if evt_type == "reasoning_chunk":
                         reasoning_traces.setdefault("Strategist (Replan)", []).append(event["data"].get("chunk", ""))
 
+                agent_summaries["Strategist (Replan)"] = f"{len(new_plans)} new remediation plans"
                 yield format_sse("agent_complete", {"agent": "Strategist (Replan)", "summary": f"{len(new_plans)} new remediation plans"})
                 current_plans = new_plans
 
@@ -356,7 +361,7 @@ def stream_create_prs(scan_id: str = Query(...), token: str = Query(...)):
             for agent_name, chunks in reasoning_traces.items():
                 db.execute(
                     "INSERT INTO reasoning_log (id, scan_id, agent, action, output, full_text, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                    (str(uuid.uuid4()), scan_id, agent_name, "pr_pipeline", "", "".join(chunks) or None, datetime.utcnow().isoformat()),
+                    (str(uuid.uuid4()), scan_id, agent_name, "pr_pipeline", agent_summaries.get(agent_name, ""), "".join(chunks) or None, datetime.utcnow().isoformat()),
                 )
 
             db.commit()

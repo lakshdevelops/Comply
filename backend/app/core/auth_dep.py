@@ -1,12 +1,12 @@
 """Extended auth dependency with consultancy context."""
-from __future__ import annotations
+from typing import Optional
 from fastapi import Depends, HTTPException, status
 from app.core.security import get_current_user
 from app.core.firestore import get_db
 
 
 class CurrentUser:
-    def __init__(self, uid: str, email: str, consultancy_id: str | None):
+    def __init__(self, uid: str, email: str, consultancy_id: Optional[str]):
         self.uid = uid
         self.email = email
         self.consultancy_id = consultancy_id

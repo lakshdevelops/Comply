@@ -101,7 +101,7 @@ function DashboardMockup() {
 
 export default function HeroSection() {
   return (
-    <section className="relative min-h-screen pt-24 pb-20 flex items-center overflow-hidden">
+    <section className="relative min-h-screen pt-20 pb-10 flex items-center overflow-hidden">
       <div className="relative mx-auto max-w-7xl px-6 w-full">
         <div className="grid grid-cols-1 items-center gap-16 lg:grid-cols-2">
           {/* Left: text */}
@@ -131,9 +131,9 @@ export default function HeroSection() {
               {...fadeUp(0.15)}
               className="text-lg leading-relaxed text-warm-grey-600"
             >
-              Connect your GitHub repo and a team of AI agents audits, plans,
-              and fixes your infrastructure automatically — in minutes, not
-              months.
+              Connect your GitHub repo or upload compliance documents — a team
+              of AI agents audits your infrastructure and documentation, plans
+              remediation, and ships fixes automatically.
             </motion.p>
 
             <motion.div {...fadeUp(0.2)} className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -157,7 +157,7 @@ export default function HeroSection() {
               {...fadeUp(0.25)}
               className="flex items-center gap-4 pt-2"
             >
-              {["SOC 2", "ISO 27001", "CIS Benchmarks", "GDPR"].map((tag) => (
+              {["SOC 2", "ISO 27001", "GDPR", "DORA", "HIPAA", "PCI-DSS"].map((tag) => (
                 <span
                   key={tag}
                   className="text-xs text-warm-grey-400 font-mono"

@@ -9,8 +9,8 @@ const steps = [
     icon: GitBranch,
     title: "Connect Repository",
     description:
-      "Securely link your GitHub repo via OAuth. No manual uploads, no config files — just click and connect.",
-    detail: "Supports monorepos, Terraform, Kubernetes, and more.",
+      "Link your GitHub repo via OAuth or upload compliance documents. Create workspaces per client with framework-specific scanning.",
+    detail: "Supports monorepos, Terraform, Kubernetes, PDFs, and policy docs.",
     agentColor: "bg-warm-grey-300",
   },
   {
@@ -35,7 +35,7 @@ const steps = [
 
 export default function HowItWorksSection() {
   return (
-    <section id="how-it-works" className="py-24 relative">
+    <section id="how-it-works" className="py-12 relative">
       <div className="mx-auto max-w-7xl px-6">
         {/* Heading */}
         <motion.div

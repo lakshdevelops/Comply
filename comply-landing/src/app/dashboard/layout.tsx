@@ -49,6 +49,16 @@ function TopNav() {
           Comply
         </Link>
 
+        {/* Nav links */}
+        <nav className="hidden sm:flex items-center gap-4 ml-8">
+          <Link href="/dashboard" className="text-sm text-warm-grey-600 hover:text-warm-grey-900 transition-colors">
+            Dashboard
+          </Link>
+          <Link href="/dashboard/workspaces" className="text-sm text-warm-grey-600 hover:text-warm-grey-900 transition-colors">
+            Workspaces
+          </Link>
+        </nav>
+
         {/* Profile dropdown */}
         <div className="relative">
           <button

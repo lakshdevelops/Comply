@@ -3,10 +3,10 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { motion } from "motion/react";
-import { ArrowLeft, CheckCircle2, AlertTriangle, XCircle } from "lucide-react";
+import { ArrowLeft, CheckCircle2, AlertTriangle, XCircle, LayoutTemplate } from "lucide-react";
 import Link from "next/link";
 import { useAuth } from "@/contexts/AuthContext";
-import { getScan, approveFixes, createPRs } from "@/lib/api";
+import { getScan, approveFixes, createPRs, createMiroDiagram } from "@/lib/api";
 import ViolationCard from "../../components/ViolationCard";
 import ScanProgress from "../../components/ScanProgress";
 import PrStatus from "../../components/PrStatus";
@@ -50,6 +50,9 @@ export default function ScanResultPage() {
   const [prLoading, setPrLoading] = useState(false);
   const [prUrls, setPrUrls] = useState<string[]>([]);
   const [prError, setPrError] = useState<string | null>(null);
+  const [miroLoading, setMiroLoading] = useState(false);
+  const [miroUrl, setMiroUrl] = useState<string | null>(null);
+  const [miroError, setMiroError] = useState<string | null>(null);
 
   const fetchScan = useCallback(async () => {
     try {
@@ -134,6 +137,33 @@ export default function ScanResultPage() {
       );
     } finally {
       setPrLoading(false);
+    }
+  };
+
+  const handleExportMiro = async () => {
+    const token = await getIdToken();
+    if (!token) return;
+
+    setMiroLoading(true);
+    setMiroError(null);
+
+    try {
+      const result = await createMiroDiagram(token, scanId);
+      // Miro MCP result may have a viewLink, url, or id
+      const miroResult = result.miro_result || {};
+      const link =
+        miroResult.viewLink ||
+        miroResult.url ||
+        (miroResult.id
+          ? `https://miro.com/app/board/${miroResult.id}/`
+          : null);
+      setMiroUrl(link || "Diagram created — check your Miro boards.");
+    } catch (err) {
+      setMiroError(
+        err instanceof Error ? err.message : "Failed to export to Miro"
+      );
+    } finally {
+      setMiroLoading(false);
     }
   };
 
@@ -243,6 +273,14 @@ export default function ScanResultPage() {
               >
                 {prLoading ? "Creating PRs..." : "Create PRs"}
               </button>
+              <button
+                onClick={handleExportMiro}
+                disabled={miroLoading}
+                className="flex items-center gap-1.5 rounded-xl bg-yellow-400 px-4 py-2 text-sm font-medium text-yellow-950 hover:bg-yellow-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <LayoutTemplate className="h-4 w-4" />
+                {miroLoading ? "Exporting..." : "Export to Miro"}
+              </button>
             </div>
           </div>
 
@@ -274,6 +312,36 @@ export default function ScanResultPage() {
       {/* PR Status */}
       {(prUrls.length > 0 || prLoading || prError) && (
         <PrStatus urls={prUrls} loading={prLoading} error={prError} />
+      )}
+
+      {/* Miro export result */}
+      {(miroUrl || miroError) && (
+        <div className="rounded-2xl border border-warm-grey-200 bg-warm-grey-50 p-6">
+          <h3 className="flex items-center gap-2 font-display text-lg font-bold text-warm-grey-900">
+            <LayoutTemplate className="h-5 w-5 text-yellow-600" />
+            Miro Diagram
+          </h3>
+          <div className="mt-3">
+            {miroError && (
+              <p className="text-sm text-red-500">{miroError}</p>
+            )}
+            {miroUrl && (
+              miroUrl.startsWith("http") ? (
+                <a
+                  href={miroUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-sm text-yellow-700 underline hover:text-yellow-900"
+                >
+                  <LayoutTemplate className="h-4 w-4" />
+                  Open in Miro
+                </a>
+              ) : (
+                <p className="text-sm text-warm-grey-600">{miroUrl}</p>
+              )
+            )}
+          </div>
+        </div>
       )}
     </motion.div>
   );

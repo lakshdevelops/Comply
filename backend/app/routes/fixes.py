@@ -14,31 +14,31 @@ router = APIRouter()
 def approve_fixes(req: ApproveRequest, user: dict = Depends(get_current_user)):
     """Mark specific violations as approved for remediation."""
     db = get_db()
+    try:
+        # Verify scan belongs to user
+        scan = db.execute(
+            "SELECT * FROM scans WHERE id = ? AND user_id = ?",
+            (req.scan_id, user["uid"]),
+        ).fetchone()
+        if not scan:
+            raise HTTPException(status_code=404, detail="Scan not found")
 
-    # Verify scan belongs to user
-    scan = db.execute(
-        "SELECT * FROM scans WHERE id = ? AND user_id = ?",
-        (req.scan_id, user["uid"]),
-    ).fetchone()
-    if not scan:
+        # Mark remediation plans as approved
+        for vid in req.violation_ids:
+            db.execute(
+                "UPDATE remediation_plans SET approved = 1 WHERE scan_id = ? AND violation_id = ?",
+                (req.scan_id, vid),
+            )
+
+        db.commit()
+
+        # Get count of approved
+        count = db.execute(
+            "SELECT COUNT(*) as cnt FROM remediation_plans WHERE scan_id = ? AND approved = 1",
+            (req.scan_id,),
+        ).fetchone()["cnt"]
+    finally:
         db.close()
-        raise HTTPException(status_code=404, detail="Scan not found")
-
-    # Mark remediation plans as approved
-    for vid in req.violation_ids:
-        db.execute(
-            "UPDATE remediation_plans SET approved = 1 WHERE scan_id = ? AND violation_id = ?",
-            (req.scan_id, vid),
-        )
-
-    db.commit()
-
-    # Get count of approved
-    count = db.execute(
-        "SELECT COUNT(*) as cnt FROM remediation_plans WHERE scan_id = ? AND approved = 1",
-        (req.scan_id,),
-    ).fetchone()["cnt"]
-    db.close()
 
     return {"approved_count": count, "scan_id": req.scan_id}
 
@@ -47,48 +47,44 @@ def approve_fixes(req: ApproveRequest, user: dict = Depends(get_current_user)):
 def create_prs(req: CreatePRsRequest, user: dict = Depends(get_current_user)):
     """Run PR pipeline for approved fixes and create GitHub PRs."""
     user_id = user["uid"]
+
+    # Fetch all needed DB data up-front, then close the connection
     db = get_db()
+    try:
+        scan = db.execute(
+            "SELECT * FROM scans WHERE id = ? AND user_id = ?",
+            (req.scan_id, user_id),
+        ).fetchone()
+        if not scan:
+            raise HTTPException(status_code=404, detail="Scan not found")
 
-    # Verify scan
-    scan = db.execute(
-        "SELECT * FROM scans WHERE id = ? AND user_id = ?",
-        (req.scan_id, user_id),
-    ).fetchone()
-    if not scan:
+        token_row = db.execute(
+            "SELECT access_token FROM github_tokens WHERE user_id = ?", (user_id,)
+        ).fetchone()
+        if not token_row:
+            raise HTTPException(status_code=400, detail="GitHub not connected")
+
+        approved_plans = [
+            dict(row)
+            for row in db.execute(
+                "SELECT rp.*, v.file as v_file FROM remediation_plans rp JOIN violations v ON rp.violation_id = v.id WHERE rp.scan_id = ? AND rp.approved = 1",
+                (req.scan_id,),
+            ).fetchall()
+        ]
+    finally:
         db.close()
-        raise HTTPException(status_code=404, detail="Scan not found")
-
-    # Get GitHub token
-    token_row = db.execute(
-        "SELECT access_token FROM github_tokens WHERE user_id = ?", (user_id,)
-    ).fetchone()
-    if not token_row:
-        db.close()
-        raise HTTPException(status_code=400, detail="GitHub not connected")
-
-    access_token = token_row["access_token"]
-
-    # Get approved plans
-    approved_plans = [
-        dict(row)
-        for row in db.execute(
-            "SELECT rp.*, v.file as v_file FROM remediation_plans rp JOIN violations v ON rp.violation_id = v.id WHERE rp.scan_id = ? AND rp.approved = 1",
-            (req.scan_id,),
-        ).fetchall()
-    ]
 
     if not approved_plans:
-        db.close()
         raise HTTPException(
             status_code=400, detail="No approved fixes to generate PRs for"
         )
 
-    # Get repo files
+    access_token = token_row["access_token"]
+
+    # Fetch repo files (network call – DB must be closed before this)
     repo_files = get_repo_infra_files(
         access_token, scan["repo_owner"], scan["repo_name"]
     )
-
-    db.close()
 
     try:
         # Run PR pipeline
@@ -107,8 +103,8 @@ def create_prs(req: CreatePRsRequest, user: dict = Depends(get_current_user)):
         reasoning_log = result.get("reasoning_log", [])
 
         # Create PRs via GitHub API
-        all_plans = []
         file_fixes = []
+        all_plans = []
         for fix in fixes:
             file_fixes.append(
                 {"file": fix["file"], "fixed_content": fix["fixed_content"]}
@@ -119,36 +115,37 @@ def create_prs(req: CreatePRsRequest, user: dict = Depends(get_current_user)):
             access_token, scan["repo_owner"], scan["repo_name"], file_fixes, all_plans
         )
 
-        # Save to DB
+        # Persist PR and reasoning log to DB
         db = get_db()
-        db.execute(
-            "INSERT INTO pull_requests (id, scan_id, pr_url, file, violation_count, branch_name) VALUES (?, ?, ?, ?, ?, ?)",
-            (
-                str(uuid.uuid4()),
-                req.scan_id,
-                pr_result["pr_url"],
-                ",".join(f["file"] for f in file_fixes),
-                len(all_plans),
-                pr_result["branch"],
-            ),
-        )
-
-        # Save reasoning log
-        for entry in reasoning_log:
+        try:
             db.execute(
-                "INSERT INTO reasoning_log (id, scan_id, agent, action, output, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+                "INSERT INTO pull_requests (id, scan_id, pr_url, file, violation_count, branch_name) VALUES (?, ?, ?, ?, ?, ?)",
                 (
                     str(uuid.uuid4()),
                     req.scan_id,
-                    entry.get("agent", ""),
-                    entry.get("action", ""),
-                    entry.get("output", ""),
-                    datetime.utcnow().isoformat(),
+                    pr_result["pr_url"],
+                    ",".join(f["file"] for f in file_fixes),
+                    len(all_plans),
+                    pr_result["branch"],
                 ),
             )
 
-        db.commit()
-        db.close()
+            for entry in reasoning_log:
+                db.execute(
+                    "INSERT INTO reasoning_log (id, scan_id, agent, action, output, created_at) VALUES (?, ?, ?, ?, ?, ?)",
+                    (
+                        str(uuid.uuid4()),
+                        req.scan_id,
+                        entry.get("agent", ""),
+                        entry.get("action", ""),
+                        entry.get("output", ""),
+                        datetime.utcnow().isoformat(),
+                    ),
+                )
+
+            db.commit()
+        finally:
+            db.close()
 
         return {
             "scan_id": req.scan_id,
@@ -156,5 +153,7 @@ def create_prs(req: CreatePRsRequest, user: dict = Depends(get_current_user)):
             "reasoning_log": reasoning_log,
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

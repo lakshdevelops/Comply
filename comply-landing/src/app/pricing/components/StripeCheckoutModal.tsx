@@ -10,8 +10,10 @@ import {
   useStripe,
   useElements,
 } from "@stripe/react-stripe-js";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { createSubscription, getStripeConfig } from "@/lib/api";
+import { usePlan } from "@/contexts/PlanContext";
+import { createSubscription, getStripeConfig, confirmSubscription } from "@/lib/api";
 
 // ── Stripe promise (loaded once) ────────────────────────────────────
 
@@ -127,6 +129,8 @@ export default function StripeCheckoutModal({
   onClose,
 }: StripeCheckoutModalProps) {
   const { user, getIdToken } = useAuth();
+  const { refreshSubscription } = usePlan();
+  const router = useRouter();
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -164,6 +168,50 @@ export default function StripeCheckoutModal({
       setError(null);
     }
   }, [open]);
+
+  // ── Post-payment activation (runs in the PARENT, safe from unmount) ──
+  useEffect(() => {
+    if (!success) return;
+    let cancelled = false;
+
+    (async () => {
+      try {
+        // Tell the backend to check Stripe directly and update Firestore
+        const token = await getIdToken();
+        if (token && !cancelled) {
+          await confirmSubscription(token);
+        }
+        // Refresh PlanContext so PlanGuard lets us through
+        if (!cancelled) {
+          const latest = await refreshSubscription();
+          if (latest !== "free") {
+            // Plan is confirmed — navigate (client-side, preserves auth state)
+            router.push("/dashboard");
+            return;
+          }
+        }
+      } catch {
+        // confirm call failed — fall through to polling
+      }
+
+      // Fallback: poll a few times in case webhook hasn't arrived yet
+      for (let attempt = 0; attempt < 8 && !cancelled; attempt++) {
+        await new Promise((r) => setTimeout(r, 1500));
+        const latest = await refreshSubscription();
+        if (latest !== "free") {
+          router.push("/dashboard");
+          return;
+        }
+      }
+
+      // Last resort — navigate with query param so PlanGuard can retry
+      if (!cancelled) {
+        router.push("/dashboard?subscription=success");
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [success, getIdToken, refreshSubscription, router]);
 
   const price = PLAN_PRICES[plan]?.[interval] ?? 0;
   const monthlyDisplay = interval === "annual" ? Math.round(price / 12) : price;
@@ -283,13 +331,7 @@ export default function StripeCheckoutModal({
                 }}
               >
                 <CheckoutForm
-                  onSuccess={() => {
-                    setSuccess(true);
-                    setTimeout(() => {
-                      window.location.href =
-                        "/dashboard?subscription=success";
-                    }, 1500);
-                  }}
+                  onSuccess={() => setSuccess(true)}
                   onClose={onClose}
                 />
               </Elements>

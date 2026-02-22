@@ -119,8 +119,8 @@ def create_subscription(customer_id: str, price_id: str) -> dict:
         expand=["latest_invoice.confirmation_secret"],
     )
     return {
-        "subscription_id": subscription.id,
-        "client_secret": subscription.latest_invoice.confirmation_secret.client_secret,
+        "subscription_id": subscription["id"],
+        "client_secret": subscription["latest_invoice"]["confirmation_secret"]["client_secret"],
     }
 
 
@@ -150,9 +150,9 @@ def handle_webhook_event(payload: bytes, sig_header: str) -> None:
     event = stripe.Webhook.construct_event(
         payload, sig_header, settings.STRIPE_WEBHOOK_SECRET
     )
-    handler = _WEBHOOK_HANDLERS.get(event.type)
+    handler = _WEBHOOK_HANDLERS.get(event["type"])
     if handler:
-        handler(event.data.object)
+        handler(event["data"]["object"])
 
 
 def _find_user_doc_by_customer(customer_id: str):
@@ -170,28 +170,35 @@ def _find_user_doc_by_customer(customer_id: str):
 
 
 def _on_subscription_created_or_updated(subscription) -> None:
-    customer_id = subscription.customer
+    customer_id = subscription["customer"]
     doc_ref, _ = _find_user_doc_by_customer(customer_id)
     if not doc_ref:
         return
 
+    # NOTE: subscription.items is a method in newer SDK versions;
+    # use bracket access subscription["items"]["data"] instead.
     price_id = None
-    items = subscription.get("items", {}).get("data", [])
-    if items:
-        price_id = items[0]["price"]["id"]
+    try:
+        items_data = subscription["items"]["data"]
+        if items_data:
+            price_id = items_data[0]["price"]["id"]
+    except (KeyError, IndexError, TypeError):
+        pass
 
     plan = _price_id_to_plan(price_id)
     interval = _price_id_to_interval(price_id)
-    status = subscription.status
+    status = subscription["status"]
+    # current_period_end was removed in Stripe API v2; use bracket access with fallback
+    raw_period_end = subscription.get("current_period_end") or subscription.get("billing_cycle_anchor")
     period_end = (
-        datetime.fromtimestamp(subscription.current_period_end, tz=timezone.utc).isoformat()
-        if subscription.current_period_end
+        datetime.fromtimestamp(raw_period_end, tz=timezone.utc).isoformat()
+        if raw_period_end
         else None
     )
 
     doc_ref.set(
         {
-            "stripe_subscription_id": subscription.id,
+            "stripe_subscription_id": subscription["id"],
             "plan": plan,
             "status": status,
             "current_period_end": period_end,
@@ -203,7 +210,7 @@ def _on_subscription_created_or_updated(subscription) -> None:
 
 
 def _on_subscription_deleted(subscription) -> None:
-    customer_id = subscription.customer
+    customer_id = subscription["customer"]
     doc_ref, _ = _find_user_doc_by_customer(customer_id)
     if not doc_ref:
         return
@@ -218,7 +225,7 @@ def _on_subscription_deleted(subscription) -> None:
 
 
 def _on_invoice_payment_failed(invoice) -> None:
-    customer_id = invoice.customer
+    customer_id = invoice["customer"]
     doc_ref, _ = _find_user_doc_by_customer(customer_id)
     if not doc_ref:
         return
@@ -273,13 +280,79 @@ def get_user_subscription(user_id: str) -> dict:
             "features": get_features_for_plan("free"),
         }
     data = doc.to_dict()
-    plan = data.get("plan", "free") if data.get("status") == "active" else "free"
+    plan = data.get("plan", "free") if data.get("status") in ("active", "trialing") else "free"
     return {
         "plan": plan,
         "status": data.get("status", "inactive"),
         "current_period_end": data.get("current_period_end"),
         "billing_interval": data.get("billing_interval"),
         "features": get_features_for_plan(plan),
+    }
+
+
+def confirm_subscription(user_id: str) -> dict:
+    """Check the subscription status directly against Stripe and update Firestore.
+
+    This is called after the frontend confirms payment, so we don't need to
+    wait for the webhook to arrive.  Returns the updated subscription dict.
+    """
+    fs = _fs()
+    doc_ref = fs.collection("subscriptions").document(user_id)
+    doc = doc_ref.get()
+    if not doc.exists:
+        return get_user_subscription(user_id)
+
+    data = doc.to_dict()
+    sub_id = data.get("stripe_subscription_id")
+    if not sub_id:
+        return get_user_subscription(user_id)
+
+    # Fetch the live subscription object from Stripe
+    try:
+        stripe_sub = stripe.Subscription.retrieve(sub_id)
+    except Exception:
+        return get_user_subscription(user_id)
+
+    # Derive plan / interval from the price ID on the subscription
+    # NOTE: stripe_sub.items is a method in newer SDK versions;
+    # use bracket access stripe_sub["items"]["data"] instead.
+    price_id = None
+    try:
+        items_data = stripe_sub["items"]["data"]
+        if items_data:
+            price_id = items_data[0]["price"]["id"]
+    except (KeyError, IndexError, TypeError):
+        pass
+
+    plan = _price_id_to_plan(price_id)
+    interval = _price_id_to_interval(price_id)
+    status = stripe_sub["status"]
+    # current_period_end was removed in Stripe API v2; use bracket access with fallback
+    raw_period_end = stripe_sub.get("current_period_end") or stripe_sub.get("billing_cycle_anchor")
+    period_end = (
+        datetime.fromtimestamp(raw_period_end, tz=timezone.utc).isoformat()
+        if raw_period_end
+        else None
+    )
+
+    doc_ref.set(
+        {
+            "plan": plan,
+            "status": status,
+            "current_period_end": period_end,
+            "billing_interval": interval,
+            "updated_at": datetime.now(timezone.utc).isoformat(),
+        },
+        merge=True,
+    )
+
+    resolved_plan = plan if status in ("active", "trialing") else "free"
+    return {
+        "plan": resolved_plan,
+        "status": status,
+        "current_period_end": period_end,
+        "billing_interval": interval,
+        "features": get_features_for_plan(resolved_plan),
     }
 
 

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Menu, X, LogOut, LayoutDashboard, User } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import PlanBadge from "@/components/ui/PlanBadge";
 
 const navLinks = [
   { label: "How It Works", href: "/#how-it-works" },
@@ -67,6 +68,7 @@ export default function Navbar() {
                   </span>
                 )}
                 <span className="max-w-[120px] truncate">{user.displayName ?? user.email}</span>
+                <PlanBadge />
               </button>
 
               <AnimatePresence>
@@ -168,6 +170,7 @@ export default function Navbar() {
                       </span>
                     )}
                     <span className="text-sm font-medium text-warm-grey-700 truncate">{user.displayName ?? user.email}</span>
+                    <PlanBadge />
                   </div>
                   <a
                     href="/dashboard"

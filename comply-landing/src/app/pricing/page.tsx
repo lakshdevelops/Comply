@@ -9,9 +9,11 @@ import PricingPlans from "./components/PricingPlans";
 import StripeCheckoutModal from "./components/StripeCheckoutModal";
 import EnterpriseModal from "./components/EnterpriseModal";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePlan } from "@/contexts/PlanContext";
 
 export default function PricingPage() {
   const { user } = useAuth();
+  const { plan: currentPlan } = usePlan();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -55,6 +57,7 @@ export default function PricingPage() {
       <Navbar />
       <PricingHero />
       <PricingPlans
+        currentPlan={currentPlan}
         onSelectPlan={handleSelectPlan}
         onEnterprise={() => setEnterpriseOpen(true)}
       />

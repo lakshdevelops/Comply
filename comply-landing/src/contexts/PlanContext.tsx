@@ -35,7 +35,8 @@ interface PlanContextType {
   plan: string;
   features: PlanFeatures;
   hasFeature: (name: keyof PlanFeatures) => boolean;
-  refreshSubscription: () => Promise<void>;
+  /** Re-fetches subscription from API. Returns the plan string. */
+  refreshSubscription: () => Promise<string>;
 }
 
 const FREE_FEATURES: PlanFeatures = {
@@ -51,31 +52,38 @@ const FREE_FEATURES: PlanFeatures = {
 const PlanContext = createContext<PlanContextType | null>(null);
 
 export function PlanProvider({ children }: { children: ReactNode }) {
-  const { user, getIdToken } = useAuth();
+  const { user, getIdToken, loading: authLoading } = useAuth();
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchSubscription = useCallback(async () => {
+  const fetchSubscription = useCallback(async (): Promise<string> => {
     if (!user) {
       setSubscription(null);
-      setLoading(false);
-      return;
+      // Only mark loading=false if auth is done loading —
+      // otherwise we'd prematurely report "free" before we know who the user is.
+      if (!authLoading) setLoading(false);
+      return "free";
     }
+    setLoading(true);
     try {
       const token = await getIdToken();
-      if (!token) return;
+      if (!token) return "free";
       const data = await getSubscription(token);
       setSubscription(data);
+      return data?.plan ?? "free";
     } catch {
       setSubscription(null);
+      return "free";
     } finally {
       setLoading(false);
     }
-  }, [user, getIdToken]);
+  }, [user, getIdToken, authLoading]);
 
   useEffect(() => {
+    // Don't attempt to fetch until Firebase Auth has finished initialising
+    if (authLoading) return;
     fetchSubscription();
-  }, [fetchSubscription]);
+  }, [authLoading, fetchSubscription]);
 
   const plan = subscription?.plan ?? "free";
   const features = subscription?.features ?? FREE_FEATURES;
